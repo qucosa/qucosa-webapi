@@ -22,11 +22,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "Document")
 public class OpusDocument {
 
-	@XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
+
 	private String type;
-	@XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
+
 	private String href;
-	@XmlAttribute()
+
 	private String nr;
 
 	public OpusDocument() {}
@@ -37,4 +37,30 @@ public class OpusDocument {
 		this.nr = nr;
 	}
 
+	@XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	@XmlAttribute
+	public String getNr() {
+		return nr;
+	}
+
+	public void setNr(String nr) {
+		this.nr = nr;
+	}
+
+	@XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
+	public String getHref() {
+		return href;
+	}
+
+	public void setHref(String href) {
+		this.href = href;
+	}
 }
