@@ -17,23 +17,29 @@
 
 package de.qucosa.webapi.v1;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.util.ArrayList;
 
-@XmlRootElement(name = "Opus")
-public class OpusResponse {
+import static org.junit.Assert.assertEquals;
 
-	private ArrayList<OpusDocument> documentList = new ArrayList<>();
+public class OpusResponseTest {
 
-	@XmlElement(name = "Document")
-	@XmlElementWrapper(name = "DocumentList")
-	public ArrayList<OpusDocument> getDocumentList() {
-		return documentList;
+	private OpusResponse opusResponse;
+
+	@Before
+	public void setUp() throws Exception {
+		opusResponse = new OpusResponse();
 	}
 
-	public void addDocument(OpusDocument doc) {
-		documentList.add(doc);
+	@Test
+	public void addsDocumentToTheList() throws Exception {
+		OpusDocument doc = new OpusDocument();
+
+		opusResponse.addDocument(doc);
+		ArrayList result = opusResponse.getDocumentList();
+
+		assertEquals("There should be one document in the list after adding.", 1, result.size());
 	}
 }
