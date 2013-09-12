@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/slub/qucosa-webapi.png?branch=master)](https://travis-ci.org/slub/qucosa-webapi)
+
 # Qucosa Webapi
 
 A Java web application that provides a RESTful interface to the Qucosa repository
