@@ -17,19 +17,24 @@
 
 package de.qucosa.webapi.v1;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
+import org.junit.Before;
+import org.junit.Test;
 
-@XmlRootElement(name = "Opus")
-public class OpusResponse {
+import static org.junit.Assert.assertEquals;
 
-	private ArrayList<OpusDocument> documentList = new ArrayList<OpusDocument>();
+public class DocumentResourceTest {
 
-	@XmlElement(name = "Document")
-	@XmlElementWrapper(name = "DocumentList")
-	public ArrayList<OpusDocument> getDocumentList() {
-		return documentList;
+	private DocumentResource documentResource;
+
+	@Before
+	public void setUp() throws Exception {
+		documentResource = new DocumentResource();
 	}
+
+	@Test
+	public void returnsEmptyDocumentList() throws Exception {
+		OpusResponse response = documentResource.listAll();
+		assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
+	}
+
 }
