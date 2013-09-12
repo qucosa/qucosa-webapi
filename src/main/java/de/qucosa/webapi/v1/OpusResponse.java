@@ -27,11 +27,6 @@ public class OpusResponse {
 
 	@XmlElement(name = "Document")
 	@XmlElementWrapper(name = "DocumentList")
-	private ArrayList<OpusDocument> documentList;
-
-	public OpusResponse() {
-		documentList = new ArrayList<OpusDocument>();
-		documentList.add(new OpusDocument("simple", "http://qucosa.local/webapi/document/1", "1"));
-	}
+	private ArrayList<OpusDocument> documentList = new ArrayList<OpusDocument>();
 
 }
