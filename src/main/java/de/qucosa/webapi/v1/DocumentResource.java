@@ -17,17 +17,44 @@
 
 package de.qucosa.webapi.v1;
 
+import com.yourmediashelf.fedora.client.FedoraClient;
+import com.yourmediashelf.fedora.client.FedoraClientException;
+import com.yourmediashelf.fedora.client.FedoraCredentials;
+import com.yourmediashelf.fedora.client.request.FindObjects;
+import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import java.net.MalformedURLException;
 
 @Path("/document")
 @Produces({"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
-	@GET
-	public OpusResponse listAll() {
-		return new OpusResponse();
+	private static FedoraClient fedoraClient;
+
+	static {
+		try {
+			fedoraClient = new FedoraClient(
+					new FedoraCredentials("http://localhost:9090/fedora", "fedoraAdmin", "fedoraAdmin"));
+		} catch (MalformedURLException e) {
+			e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+		}
 	}
 
+
+	@GET
+	public OpusResponse listAll() throws MalformedURLException, FedoraClientException {
+		FindObjects fo = new FindObjects().pid().query("pid~demo:*");
+		FindObjectsResponse fr;
+		fr = (FindObjectsResponse) fedoraClient.execute(fo);
+
+		OpusResponse or = new OpusResponse();
+		for (String pid : fr.getPids()) {
+			or.addDocument(new OpusDocument("simple", "http://example.com/documents/" + pid, pid));
+		}
+
+		return or;
+	}
 }
