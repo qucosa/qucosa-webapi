@@ -19,7 +19,6 @@ package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import com.yourmediashelf.fedora.client.FedoraCredentials;
 import com.yourmediashelf.fedora.client.request.FindObjects;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
 
@@ -32,17 +31,11 @@ import java.net.MalformedURLException;
 @Produces({"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
-	private static FedoraClient fedoraClient;
+	final private FedoraClient fedoraClient;
 
-	static {
-		try {
-			fedoraClient = new FedoraClient(
-					new FedoraCredentials("http://localhost:9090/fedora", "fedoraAdmin", "fedoraAdmin"));
-		} catch (MalformedURLException e) {
-			e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-		}
+	public DocumentResource(FedoraClient fedoraClient) {
+		this.fedoraClient = fedoraClient;
 	}
-
 
 	@GET
 	public OpusResponse listAll() throws MalformedURLException, FedoraClientException {

@@ -17,18 +17,28 @@
 
 package de.qucosa.webapi.v1;
 
+import com.yourmediashelf.fedora.client.FedoraClient;
+import com.yourmediashelf.fedora.client.FedoraCredentials;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.net.MalformedURLException;
 
 import static org.junit.Assert.assertEquals;
 
 public class DocumentResourceTest {
 
+	final private FedoraClient fedoraClient;
 	private DocumentResource documentResource;
+
+	public DocumentResourceTest() throws MalformedURLException {
+		fedoraClient = new FedoraClient(
+				new FedoraCredentials("http://localhost:9090/fedora", "fedoraAdmin", "fedoraAdmin"));
+	}
 
 	@Before
 	public void setUp() throws Exception {
-		documentResource = new DocumentResource();
+		documentResource = new DocumentResource(fedoraClient);
 	}
 
 	@Test
