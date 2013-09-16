@@ -20,10 +20,14 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:fedora.properties"/>
+    </bean>
+
     <bean id="fedoraCredentials" class="com.yourmediashelf.fedora.client.FedoraCredentials">
-        <constructor-arg index="0" type="java.lang.String" value="http://localhost:9090/fedora"/>
-        <constructor-arg index="1" type="java.lang.String" value="fedoraAdmin"/>
-        <constructor-arg index="2" type="java.lang.String" value="fedoraAdmin"/>
+        <constructor-arg index="0" type="java.lang.String" value="${fedora.host.url}"/>
+        <constructor-arg index="1" type="java.lang.String" value="${fedora.user}"/>
+        <constructor-arg index="2" type="java.lang.String" value="${fedora.password}"/>
     </bean>
 
     <bean id="fedoraClient" class="com.yourmediashelf.fedora.client.FedoraClient">
