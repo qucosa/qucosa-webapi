@@ -22,6 +22,7 @@ import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.FindObjects;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -33,6 +34,7 @@ public class DocumentResource {
 
 	final private FedoraClient fedoraClient;
 
+	@Inject
 	public DocumentResource(FedoraClient fedoraClient) {
 		this.fedoraClient = fedoraClient;
 	}
