@@ -17,22 +17,32 @@
 
 package de.qucosa.webapi.v1;
 
+import com.yourmediashelf.fedora.client.FedoraClient;
+import com.yourmediashelf.fedora.client.request.FedoraRequest;
+import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DocumentResourceTest {
 
+	private FedoraClient fedoraClient;
 	private DocumentResource documentResource;
 
 	@Before
 	public void setUp() throws Exception {
-		documentResource = new DocumentResource();
+		fedoraClient = mock(FedoraClient.class);
+		documentResource = new DocumentResource(fedoraClient);
 	}
 
 	@Test
 	public void returnsEmptyDocumentList() throws Exception {
+		when(fedoraClient.execute(any(FedoraRequest.class))).thenReturn(mock(FindObjectsResponse.class));
+
 		OpusResponse response = documentResource.listAll();
 		assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
 	}

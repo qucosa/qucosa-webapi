@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ Copyright (C) 2013 SLUB Dresden
   ~
@@ -21,11 +22,6 @@
 
 <web-app>
 
-    <context-param>
-        <param-name>resteasy.scan</param-name>
-        <param-value>true</param-value>
-    </context-param>
-
     <filter>
         <filter-name>resteasy-filter</filter-name>
         <filter-class>org.jboss.resteasy.plugins.server.servlet.FilterDispatcher</filter-class>
@@ -37,9 +33,11 @@
     </filter-mapping>
 
     <listener>
-        <listener-class>
-            org.jboss.resteasy.plugins.server.servlet.ResteasyBootstrap
-        </listener-class>
+        <listener-class>org.jboss.resteasy.plugins.server.servlet.ResteasyBootstrap</listener-class>
+    </listener>
+
+    <listener>
+        <listener-class>org.jboss.resteasy.plugins.spring.SpringContextLoaderListener</listener-class>
     </listener>
 
 </web-app>

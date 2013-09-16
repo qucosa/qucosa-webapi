@@ -142,7 +142,8 @@
 
 <p>Examples:
 <ul>
-    <li><a href="/webapi/search?field0=title&query0=gegen&searchtype=truncated">GET /webapi/search?field0=title&query0=gegen&searchtype=truncated</a></li>
+    <li><a href="/webapi/search?field0=title&query0=gegen&searchtype=truncated">GET
+        /webapi/search?field0=title&query0=gegen&searchtype=truncated</a></li>
     <li><a href="/webapi/search?field0=author&query0=oliver">GET /webapi/search?field0=author&query0=oliver</a></li>
 </ul>
 </p>

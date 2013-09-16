@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package de.qucosa.webapi.v1;
 
 import javax.xml.bind.annotation.XmlAttribute;
@@ -29,7 +30,8 @@ public class OpusDocument {
 
 	private String nr;
 
-	public OpusDocument() {}
+	public OpusDocument() {
+	}
 
 	public OpusDocument(String type, String href, String nr) {
 		this.type = type;

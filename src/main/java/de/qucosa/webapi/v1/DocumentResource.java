@@ -17,17 +17,39 @@
 
 package de.qucosa.webapi.v1;
 
+import com.yourmediashelf.fedora.client.FedoraClient;
+import com.yourmediashelf.fedora.client.FedoraClientException;
+import com.yourmediashelf.fedora.client.request.FindObjects;
+import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import java.net.MalformedURLException;
 
 @Path("/document")
 @Produces({"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
-	@GET
-	public OpusResponse listAll() {
-		return new OpusResponse();
+	final private FedoraClient fedoraClient;
+
+	@Inject
+	public DocumentResource(FedoraClient fedoraClient) {
+		this.fedoraClient = fedoraClient;
 	}
 
+	@GET
+	public OpusResponse listAll() throws MalformedURLException, FedoraClientException {
+		FindObjects fo = new FindObjects().pid().query("pid~demo:*");
+		FindObjectsResponse fr;
+		fr = (FindObjectsResponse) fedoraClient.execute(fo);
+
+		OpusResponse or = new OpusResponse();
+		for (String pid : fr.getPids()) {
+			or.addDocument(new OpusDocument("simple", "http://example.com/documents/" + pid, pid));
+		}
+
+		return or;
+	}
 }
