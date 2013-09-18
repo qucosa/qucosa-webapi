@@ -23,9 +23,9 @@ import com.yourmediashelf.fedora.client.request.FindObjects;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
 import de.qucosa.webapi.v1.xml.OpusDocument;
 import de.qucosa.webapi.v1.xml.OpusResponse;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -33,12 +33,12 @@ import java.net.MalformedURLException;
 
 @Path("/document")
 @Produces({"application/xml", "application/vnd.slub.qucosa-v1+xml"})
-@Component
+@Service
 public class DocumentResource {
 
 	final private FedoraClient fedoraClient;
 
-	@Inject
+	@Autowired
 	public DocumentResource(FedoraClient fedoraClient) {
 		this.fedoraClient = fedoraClient;
 	}

@@ -19,19 +19,19 @@ package de.qucosa.webapi.spring;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraCredentials;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
-import javax.inject.Inject;
 import java.net.MalformedURLException;
 
 @Configuration
 @PropertySource("classpath:fedora.properties")
 public class ContextConfiguration {
 
-	@Inject
+	@Autowired
 	private Environment env;
 
 	@Bean
