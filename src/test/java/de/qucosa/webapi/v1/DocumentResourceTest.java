@@ -20,6 +20,7 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.request.FedoraRequest;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.junit.Before;
 import org.junit.Test;
 

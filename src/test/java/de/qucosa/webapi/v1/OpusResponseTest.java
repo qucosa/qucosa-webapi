@@ -17,6 +17,8 @@
 
 package de.qucosa.webapi.v1;
 
+import de.qucosa.webapi.v1.xml.OpusDocument;
+import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.junit.Before;
 import org.junit.Test;
 

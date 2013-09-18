@@ -21,6 +21,8 @@ import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.FindObjects;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+import de.qucosa.webapi.v1.xml.OpusDocument;
+import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
