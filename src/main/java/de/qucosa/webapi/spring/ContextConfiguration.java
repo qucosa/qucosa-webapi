@@ -35,12 +35,16 @@ public class ContextConfiguration {
 	private Environment env;
 
 	@Bean
-	public FedoraClient fedoraClient() throws MalformedURLException {
-		return new FedoraClient(
-				new FedoraCredentials(
-						env.getProperty("fedora.host.url"),
-						env.getProperty("fedora.user"),
-						env.getProperty("fedora.password")));
+	public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
+		return new FedoraClient(fedoraCredentials);
+	}
+
+	@Bean
+	public FedoraCredentials fedoraCredentials() throws MalformedURLException {
+		return new FedoraCredentials(
+				env.getProperty("fedora.host.url"),
+				env.getProperty("fedora.user"),
+				env.getProperty("fedora.password"));
 	}
 
 }

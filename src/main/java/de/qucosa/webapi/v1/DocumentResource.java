@@ -24,16 +24,15 @@ import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
 import de.qucosa.webapi.v1.xml.OpusDocument;
 import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import java.net.MalformedURLException;
 
-@Path("/document")
-@Produces({"application/xml", "application/vnd.slub.qucosa-v1+xml"})
-@Service
+@Controller
+@RequestMapping(value = "/document", produces = {"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
 	final private FedoraClient fedoraClient;
@@ -43,7 +42,8 @@ public class DocumentResource {
 		this.fedoraClient = fedoraClient;
 	}
 
-	@GET
+	@RequestMapping(method = RequestMethod.GET)
+	@ResponseBody
 	public OpusResponse listAll() throws MalformedURLException, FedoraClientException {
 		FindObjects fo = new FindObjects().pid().query("pid~demo:*");
 		FindObjectsResponse fr;
