@@ -15,10 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi.v1;
+package de.qucosa.webapi.v1.xml;
 
-import de.qucosa.webapi.v1.xml.OpusDocument;
-import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.junit.Before;
 import org.junit.Test;
 
