@@ -23,8 +23,4 @@
 
     <context:component-scan base-package="de.qucosa.webapi"/>
 
-    <bean id="documentResource" class="de.qucosa.webapi.v1.DocumentResource">
-        <constructor-arg ref="fedoraClient"/>
-    </bean>
-
 </beans>

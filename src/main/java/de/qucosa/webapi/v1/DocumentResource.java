@@ -21,6 +21,7 @@ import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.FindObjects;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -30,6 +31,7 @@ import java.net.MalformedURLException;
 
 @Path("/document")
 @Produces({"application/xml", "application/vnd.slub.qucosa-v1+xml"})
+@Component
 public class DocumentResource {
 
 	final private FedoraClient fedoraClient;
