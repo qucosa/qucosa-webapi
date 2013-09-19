@@ -25,6 +25,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.net.MalformedURLException;
 
@@ -36,17 +38,24 @@ public class ContextConfiguration {
 	private Environment env;
 
 	@Bean
-	@Scope("session")
+	@Scope("request")
 	public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
 		return new FedoraClient(fedoraCredentials);
 	}
 
 	@Bean
-	public FedoraCredentials fedoraCredentials() throws MalformedURLException {
+	@Scope("request")
+	public FedoraCredentials fedoraCredentials(Authentication auth) throws MalformedURLException {
 		return new FedoraCredentials(
 				env.getProperty("fedora.host.url"),
-				env.getProperty("fedora.user"),
-				env.getProperty("fedora.password"));
+				auth.getName(),
+				String.valueOf(auth.getCredentials()));
+	}
+
+	@Bean
+	@Scope("request")
+	public Authentication authentication() {
+		return SecurityContextHolder.getContext().getAuthentication();
 	}
 
 }

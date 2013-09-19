@@ -28,12 +28,10 @@
         <http-basic/>
     </http>
 
-    <authentication-manager>
-        <authentication-provider>
-            <user-service>
-                <user name="fedoraAdmin" password="fedoraAdmin" authorities="ROLE_ADMIN"/>
-            </user-service>
-        </authentication-provider>
+    <authentication-manager erase-credentials="false">
+        <authentication-provider ref="acceptAllAuthenticationProvider"/>
     </authentication-manager>
+
+    <bean:bean id="acceptAllAuthenticationProvider" class="de.qucosa.webapi.spring.AcceptAllAuthenticationProvider"/>
 
 </bean:beans>
