@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 
 import java.net.MalformedURLException;
@@ -35,6 +36,7 @@ public class ContextConfiguration {
 	private Environment env;
 
 	@Bean
+	@Scope("session")
 	public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
 		return new FedoraClient(fedoraCredentials);
 	}
