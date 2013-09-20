@@ -23,7 +23,7 @@
 
     <http pattern="/index.jsp" security="none"/>
 
-    <http>
+    <http create-session="never">
         <intercept-url pattern="/**" access="ROLE_ADMIN"/>
         <http-basic/>
     </http>
