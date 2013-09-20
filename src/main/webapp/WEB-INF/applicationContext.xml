@@ -19,7 +19,10 @@
 <bean:beans xmlns="http://www.springframework.org/schema/security"
             xmlns:bean="http://www.springframework.org/schema/beans"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
+            xmlns:context="http://www.springframework.org/schema/context"
+            xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="de.qucosa.webapi.spring"/>
 
     <http pattern="/index.jsp" security="none"/>
 
@@ -31,7 +34,5 @@
     <authentication-manager erase-credentials="false">
         <authentication-provider ref="acceptAllAuthenticationProvider"/>
     </authentication-manager>
-
-    <bean:bean id="acceptAllAuthenticationProvider" class="de.qucosa.webapi.spring.AcceptAllAuthenticationProvider"/>
 
 </bean:beans>
