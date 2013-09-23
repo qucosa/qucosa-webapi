@@ -26,7 +26,7 @@
 
     <http pattern="/index.jsp" security="none"/>
 
-    <http create-session="never">
+    <http create-session="stateless">
         <intercept-url pattern="/**" access="ROLE_ADMIN"/>
         <http-basic/>
     </http>

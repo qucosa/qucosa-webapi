@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.net.MalformedURLException;
 
 @Controller
-@Scope("session")
+@Scope("request")
 @RequestMapping(value = "/document", produces = {"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
