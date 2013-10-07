@@ -20,14 +20,13 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.request.FedoraRequest;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
-import de.qucosa.webapi.TestContext;
 import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -35,15 +34,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = TestContext.class)
+@ContextConfiguration({"file:src/main/webapp/WEB-INF/applicationContext.xml"})
+@WebAppConfiguration
 public class DocumentResourceTest {
 
-    @Autowired
     private FedoraClient fedoraClient;
     private DocumentResource documentResource;
 
     @Before
     public void setUp() throws Exception {
+        fedoraClient = mock(FedoraClient.class);
         documentResource = new DocumentResource(fedoraClient);
     }
 
