@@ -20,32 +20,39 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.request.FedoraRequest;
 import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+import de.qucosa.webapi.TestContext;
 import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes = TestContext.class)
 public class DocumentResourceTest {
 
-	private FedoraClient fedoraClient;
-	private DocumentResource documentResource;
+    @Autowired
+    private FedoraClient fedoraClient;
+    private DocumentResource documentResource;
 
-	@Before
-	public void setUp() throws Exception {
-		fedoraClient = mock(FedoraClient.class);
-		documentResource = new DocumentResource(fedoraClient);
-	}
+    @Before
+    public void setUp() throws Exception {
+        documentResource = new DocumentResource(fedoraClient);
+    }
 
-	@Test
-	public void returnsEmptyDocumentList() throws Exception {
-		when(fedoraClient.execute(any(FedoraRequest.class))).thenReturn(mock(FindObjectsResponse.class));
+    @Test
+    public void returnsEmptyDocumentList() throws Exception {
+        when(fedoraClient.execute(any(FedoraRequest.class))).thenReturn(mock(FindObjectsResponse.class));
 
-		OpusResponse response = documentResource.listAll();
-		assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
-	}
+        OpusResponse response = documentResource.listAll();
+        assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
+    }
 
 }

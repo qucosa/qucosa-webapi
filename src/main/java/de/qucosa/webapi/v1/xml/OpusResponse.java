@@ -25,15 +25,15 @@ import java.util.ArrayList;
 @XmlRootElement(name = "Opus")
 public class OpusResponse {
 
-	private ArrayList<OpusDocument> documentList = new ArrayList<>();
+    private ArrayList<OpusDocument> documentList = new ArrayList<>();
 
-	@XmlElement(name = "Document")
-	@XmlElementWrapper(name = "DocumentList")
-	public ArrayList<OpusDocument> getDocumentList() {
-		return documentList;
-	}
+    @XmlElement(name = "Document")
+    @XmlElementWrapper(name = "DocumentList")
+    public ArrayList<OpusDocument> getDocumentList() {
+        return documentList;
+    }
 
-	public void addDocument(OpusDocument doc) {
-		documentList.add(doc);
-	}
+    public void addDocument(OpusDocument doc) {
+        documentList.add(doc);
+    }
 }

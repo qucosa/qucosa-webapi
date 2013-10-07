@@ -37,25 +37,26 @@ import java.net.MalformedURLException;
 @RequestMapping(value = "/document", produces = {"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
-	final private FedoraClient fedoraClient;
+    final private FedoraClient fedoraClient;
 
-	@Autowired
-	public DocumentResource(FedoraClient fedoraClient) {
-		this.fedoraClient = fedoraClient;
-	}
+    @Autowired
+    public DocumentResource(FedoraClient fedoraClient) {
+        this.fedoraClient = fedoraClient;
+    }
 
-	@RequestMapping(method = RequestMethod.GET)
-	@ResponseBody
-	public OpusResponse listAll() throws MalformedURLException, FedoraClientException {
-		FindObjects fo = new FindObjects().pid().query("pid~demo:*");
-		FindObjectsResponse fr;
-		fr = (FindObjectsResponse) fedoraClient.execute(fo);
+    @RequestMapping(method = RequestMethod.GET)
+    @ResponseBody
+    public OpusResponse listAll() throws MalformedURLException, FedoraClientException {
+        FindObjects fo = new FindObjects().pid().query("pid~demo:*");
+        FindObjectsResponse fr;
+        fr = (FindObjectsResponse) fedoraClient.execute(fo);
 
-		OpusResponse or = new OpusResponse();
-		for (String pid : fr.getPids()) {
-			or.addDocument(new OpusDocument("simple", "http://example.com/documents/" + pid, pid));
-		}
+        OpusResponse or = new OpusResponse();
+        for (String pid : fr.getPids()) {
+            or.addDocument(new OpusDocument("simple", "http://example.com/documents/" + pid, pid));
+        }
 
-		return or;
-	}
+        return or;
+    }
+
 }
