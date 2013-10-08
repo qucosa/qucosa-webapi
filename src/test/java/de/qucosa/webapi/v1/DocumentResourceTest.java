@@ -34,7 +34,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration({"file:src/main/webapp/WEB-INF/applicationContext.xml"})
+@ContextConfiguration("classpath:testContext.xml")
 @WebAppConfiguration
 public class DocumentResourceTest {
 
