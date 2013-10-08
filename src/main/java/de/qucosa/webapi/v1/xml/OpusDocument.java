@@ -24,45 +24,45 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class OpusDocument {
 
 
-    private String type;
+	private String type;
 
-    private String href;
+	private String href;
 
-    private String nr;
+	private String nr;
 
-    public OpusDocument() {
-    }
+	public OpusDocument() {
+	}
 
-    public OpusDocument(String type, String href, String nr) {
-        this.type = type;
-        this.href = href;
-        this.nr = nr;
-    }
+	public OpusDocument(String type, String href, String nr) {
+		this.type = type;
+		this.href = href;
+		this.nr = nr;
+	}
 
-    @XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
-    public String getType() {
-        return type;
-    }
+	@XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
+	public String getType() {
+		return type;
+	}
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    @XmlAttribute
-    public String getNr() {
-        return nr;
-    }
+	@XmlAttribute
+	public String getNr() {
+		return nr;
+	}
 
-    public void setNr(String nr) {
-        this.nr = nr;
-    }
+	public void setNr(String nr) {
+		this.nr = nr;
+	}
 
-    @XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
-    public String getHref() {
-        return href;
-    }
+	@XmlAttribute(namespace = "http://www.w3.org/1999/xlink")
+	public String getHref() {
+		return href;
+	}
 
-    public void setHref(String href) {
-        this.href = href;
-    }
+	public void setHref(String href) {
+		this.href = href;
+	}
 }

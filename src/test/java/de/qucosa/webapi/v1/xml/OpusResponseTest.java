@@ -26,20 +26,20 @@ import static org.junit.Assert.assertEquals;
 
 public class OpusResponseTest {
 
-    private OpusResponse opusResponse;
+	private OpusResponse opusResponse;
 
-    @Before
-    public void setUp() throws Exception {
-        opusResponse = new OpusResponse();
-    }
+	@Before
+	public void setUp() throws Exception {
+		opusResponse = new OpusResponse();
+	}
 
-    @Test
-    public void addsDocumentToTheList() throws Exception {
-        OpusDocument doc = new OpusDocument();
+	@Test
+	public void addsDocumentToTheList() throws Exception {
+		OpusDocument doc = new OpusDocument();
 
-        opusResponse.addDocument(doc);
-        ArrayList result = opusResponse.getDocumentList();
+		opusResponse.addDocument(doc);
+		ArrayList result = opusResponse.getDocumentList();
 
-        assertEquals("There should be one document in the list after adding.", 1, result.size());
-    }
+		assertEquals("There should be one document in the list after adding.", 1, result.size());
+	}
 }
