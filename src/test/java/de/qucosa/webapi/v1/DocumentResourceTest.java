@@ -42,7 +42,8 @@ public class DocumentResourceTest {
 
 	@Test
 	public void returnsEmptyDocumentList() throws Exception {
-		when(fedoraClient.execute(any(FedoraRequest.class))).thenReturn(mock(FindObjectsResponse.class));
+		when(fedoraClient.execute(any(FedoraRequest.class)))
+				.thenReturn(mock(FindObjectsResponse.class));
 
 		OpusResponse response = documentResource.listAll();
 		assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
