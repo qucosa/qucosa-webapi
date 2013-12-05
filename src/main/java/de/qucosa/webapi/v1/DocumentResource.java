@@ -19,8 +19,8 @@ package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import com.yourmediashelf.fedora.client.request.FindObjects;
-import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+import com.yourmediashelf.fedora.client.request.RiSearch;
+import com.yourmediashelf.fedora.client.response.RiSearchResponse;
 import de.qucosa.webapi.v1.xml.OpusDocument;
 import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,33 +30,42 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.net.MalformedURLException;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 @Controller
 @Scope("request")
 @RequestMapping(value = "/document", produces = {"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
-	final private FedoraClient fedoraClient;
+    final private FedoraClient fedoraClient;
 
-	@Autowired
-	public DocumentResource(FedoraClient fedoraClient) {
-		this.fedoraClient = fedoraClient;
-	}
+    @Autowired
+    public DocumentResource(FedoraClient fedoraClient) {
+        this.fedoraClient = fedoraClient;
+    }
 
-	@RequestMapping(method = RequestMethod.GET)
-	@ResponseBody
-	public OpusResponse listAll() throws MalformedURLException, FedoraClientException {
-		FindObjects fo = new FindObjects().pid().query("pid~demo:*");
-		FindObjectsResponse fr;
-		fr = (FindObjectsResponse) fedoraClient.execute(fo);
+    @RequestMapping(method = RequestMethod.GET)
+    @ResponseBody
+    public OpusResponse listAll() throws FedoraClientException, IOException {
+        String query =
+                "select $pid " +
+                        "where { ?_ <http://purl.org/dc/elements/1.1/identifier> $pid . filter regex( $pid, '^qucosa')}";
+        RiSearch riSearch = new RiSearch(query);
+        riSearch.format("csv");
+        RiSearchResponse riSearchResponse = riSearch.execute(fedoraClient);
 
-		OpusResponse or = new OpusResponse();
-		for (String pid : fr.getPids()) {
-			or.addDocument(new OpusDocument("simple", "http://example.com/documents/" + pid, pid));
-		}
-
-		return or;
-	}
+        OpusResponse or = new OpusResponse();
+        BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
+        b.skip(6);
+        while (b.ready()) {
+            String pid = b.readLine();
+            String num = pid.substring(pid.lastIndexOf(":") + 1);
+            or.addDocument(new OpusDocument("simple", "http://example.com/documents/" + num, num));
+        }
+        riSearchResponse.close();
+        return or;
+    }
 
 }
