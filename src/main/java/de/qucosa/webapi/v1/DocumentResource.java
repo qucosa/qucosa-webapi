@@ -51,21 +51,26 @@ public class DocumentResource {
     public OpusResponse listAll() throws FedoraClientException, IOException {
         String query =
                 "select $pid " +
-                        "where { ?_ <http://purl.org/dc/elements/1.1/identifier> $pid . filter regex( $pid, '^qucosa')}";
-        RiSearch riSearch = new RiSearch(query);
-        riSearch.format("csv");
-        RiSearchResponse riSearchResponse = riSearch.execute(fedoraClient);
+                        "where { ?_ <http://purl.org/dc/elements/1.1/identifier> $pid . filter regex($pid, '^qucosa')}";
 
-        OpusResponse or = new OpusResponse();
-        BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
-        b.skip(6);
-        while (b.ready()) {
-            String pid = b.readLine();
-            String num = pid.substring(pid.lastIndexOf(":") + 1);
-            or.addDocument(new OpusDocument("simple", "http://example.com/documents/" + num, num));
+        RiSearchResponse riSearchResponse = null;
+        try {
+            RiSearch riSearch = new RiSearch(query).format("csv");
+            riSearchResponse = riSearch.execute(fedoraClient);
+
+            OpusResponse or = new OpusResponse();
+            BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
+            b.skip(6);
+            while (b.ready()) {
+                String pid = b.readLine();
+                String num = pid.substring(pid.lastIndexOf(":") + 1);
+                or.addDocument(new OpusDocument("simple", "/" + num, num));
+            }
+
+            return or;
+        } finally {
+            if (riSearchResponse != null) riSearchResponse.close();
         }
-        riSearchResponse.close();
-        return or;
     }
 
 }
