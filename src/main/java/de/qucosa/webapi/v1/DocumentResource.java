@@ -18,8 +18,6 @@
 package de.qucosa.webapi.v1;
 
 import de.qucosa.webapi.FedoraRepository;
-import de.qucosa.webapi.v1.xml.OpusDocument;
-import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
@@ -27,6 +25,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.StringWriter;
 import java.util.List;
 
 @Controller
@@ -35,6 +38,8 @@ import java.util.List;
 public class DocumentResource {
 
     final private FedoraRepository fedoraRepository;
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     @Autowired
     public DocumentResource(FedoraRepository fedoraRepository) {
@@ -43,15 +48,41 @@ public class DocumentResource {
 
     @RequestMapping(method = RequestMethod.GET)
     @ResponseBody
-    public OpusResponse listAll() {
+    public String listAll() throws XMLStreamException {
         List<String> pids = fedoraRepository.getPIDsByPattern("^qucosa:");
 
-        OpusResponse or = new OpusResponse();
+        StringWriter sw = new StringWriter();
+        XMLStreamWriter w = XMLOutputFactory.newInstance().createXMLStreamWriter(sw);
+
+        w.writeStartDocument();
+        w.writeStartElement("Opus");
+        w.writeAttribute("version", "2.0");
+        w.writeStartElement("DocumentList");
+        w.writeNamespace("xlink", "http://www.w3.org/1999/xlink");
+
         for (String pid : pids) {
-            String num = pid.substring(pid.lastIndexOf(":") + 1);
-            or.addDocument(new OpusDocument("simple", num, num));
+            String href = getHrefLink(pid);
+            String nr = pid.substring(pid.lastIndexOf(':') + 1);
+            w.writeEmptyElement("Document");
+            w.writeAttribute("xlink:href", href);
+            w.writeAttribute("xlink:nr", nr);
+            w.writeAttribute("xlink:type", "simple");
         }
-        return or;
+
+        w.writeEndElement();
+        w.writeEndElement();
+        w.writeEndDocument();
+
+        w.flush();
+
+        return sw.toString();
+    }
+
+    private String getHrefLink(String pid) {
+        if (httpServletRequest == null) {
+            return "/" + pid;
+        }
+        return httpServletRequest.getRequestURL().append('/').append(pid).toString();
     }
 
 }

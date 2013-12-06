@@ -18,11 +18,17 @@
 package de.qucosa.webapi.v1;
 
 import de.qucosa.webapi.FedoraRepository;
-import de.qucosa.webapi.v1.xml.OpusResponse;
+import org.custommonkey.xmlunit.SimpleNamespaceContext;
+import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
+import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -33,6 +39,12 @@ public class DocumentResourceTest {
     private FedoraRepository fedoraRepository;
     private DocumentResource documentResource;
 
+    static {
+        Map prefixMap = new HashMap();
+        prefixMap.put("xlink", "http://www.w3.org/1999/xlink");
+        XMLUnit.setXpathNamespaceContext(new SimpleNamespaceContext(prefixMap));
+    }
+
     @Before
     public void setUp() throws Exception {
         fedoraRepository = mock(FedoraRepository.class);
@@ -40,11 +52,34 @@ public class DocumentResourceTest {
     }
 
     @Test
+    public void returnsOpus2XML() throws Exception {
+        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
+
+        String response = documentResource.listAll();
+
+        assertXpathEvaluatesTo("2.0", "/Opus/@version", response);
+    }
+
+    @Test
     public void returnsEmptyDocumentList() throws Exception {
         when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
 
-        OpusResponse response = documentResource.listAll();
-        assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
+        String response = documentResource.listAll();
+
+        assertXpathNotExists("/Opus/DocumentList/Document", response);
+    }
+
+    @Test
+    public void putsCorrectXLinkToDocument() throws Exception {
+        ArrayList<String> documentList = new ArrayList<>();
+        documentList.add("qucosa:1234");
+        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(documentList);
+
+        String response = documentResource.listAll();
+
+        assertXpathEvaluatesTo("/qucosa:1234", "/Opus/DocumentList/Document/@xlink:href", response);
+        assertXpathEvaluatesTo("1234", "/Opus/DocumentList/Document/@xlink:nr", response);
+        assertXpathEvaluatesTo("simple", "/Opus/DocumentList/Document/@xlink:type", response);
     }
 
 }
