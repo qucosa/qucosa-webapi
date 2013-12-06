@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -37,6 +38,8 @@ import java.util.List;
 public class DocumentResource {
 
     final private FedoraRepository fedoraRepository;
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     @Autowired
     public DocumentResource(FedoraRepository fedoraRepository) {
@@ -58,7 +61,7 @@ public class DocumentResource {
         w.writeNamespace("xlink", "http://www.w3.org/1999/xlink");
 
         for (String pid : pids) {
-            String href = "/" + pid;
+            String href = getHrefLink(pid);
             String nr = pid.substring(pid.lastIndexOf(':') + 1);
             w.writeEmptyElement("Document");
             w.writeAttribute("xlink:href", href);
@@ -73,6 +76,13 @@ public class DocumentResource {
         w.flush();
 
         return sw.toString();
+    }
+
+    private String getHrefLink(String pid) {
+        if (httpServletRequest == null) {
+            return "/" + pid;
+        }
+        return httpServletRequest.getRequestURL().append('/').append(pid).toString();
     }
 
 }
