@@ -77,7 +77,7 @@ public class DocumentResourceTest {
 
         String response = documentResource.listAll();
 
-        assertXpathEvaluatesTo("/qucosa:1234", "/Opus/DocumentList/Document/@xlink:href", response);
+        assertXpathEvaluatesTo("/1234", "/Opus/DocumentList/Document/@xlink:href", response);
         assertXpathEvaluatesTo("1234", "/Opus/DocumentList/Document/@xlink:nr", response);
         assertXpathEvaluatesTo("simple", "/Opus/DocumentList/Document/@xlink:type", response);
     }

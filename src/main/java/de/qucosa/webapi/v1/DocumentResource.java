@@ -61,8 +61,8 @@ public class DocumentResource {
         w.writeNamespace("xlink", "http://www.w3.org/1999/xlink");
 
         for (String pid : pids) {
-            String href = getHrefLink(pid);
             String nr = pid.substring(pid.lastIndexOf(':') + 1);
+            String href = getHrefLink(nr);
             w.writeEmptyElement("Document");
             w.writeAttribute("xlink:href", href);
             w.writeAttribute("xlink:nr", nr);
