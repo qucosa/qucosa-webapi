@@ -17,10 +17,7 @@
 
 package de.qucosa.webapi.v1;
 
-import com.yourmediashelf.fedora.client.FedoraClient;
-import com.yourmediashelf.fedora.client.FedoraClientException;
-import com.yourmediashelf.fedora.client.request.RiSearch;
-import com.yourmediashelf.fedora.client.response.RiSearchResponse;
+import de.qucosa.webapi.FedoraRepository;
 import de.qucosa.webapi.v1.xml.OpusDocument;
 import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,47 +27,31 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.List;
 
 @Controller
 @Scope("request")
 @RequestMapping(value = "/document", produces = {"application/xml", "application/vnd.slub.qucosa-v1+xml"})
 public class DocumentResource {
 
-    final private FedoraClient fedoraClient;
+    final private FedoraRepository fedoraRepository;
 
     @Autowired
-    public DocumentResource(FedoraClient fedoraClient) {
-        this.fedoraClient = fedoraClient;
+    public DocumentResource(FedoraRepository fedoraRepository) {
+        this.fedoraRepository = fedoraRepository;
     }
 
     @RequestMapping(method = RequestMethod.GET)
     @ResponseBody
-    public OpusResponse listAll() throws FedoraClientException, IOException {
-        String query =
-                "select $pid " +
-                        "where { ?_ <http://purl.org/dc/elements/1.1/identifier> $pid . filter regex($pid, '^qucosa')}";
+    public OpusResponse listAll() {
+        List<String> pids = fedoraRepository.getPIDsByPattern("^qucosa:");
 
-        RiSearchResponse riSearchResponse = null;
-        try {
-            RiSearch riSearch = new RiSearch(query).format("csv");
-            riSearchResponse = riSearch.execute(fedoraClient);
-
-            OpusResponse or = new OpusResponse();
-            BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
-            b.skip(6);
-            while (b.ready()) {
-                String pid = b.readLine();
-                String num = pid.substring(pid.lastIndexOf(":") + 1);
-                or.addDocument(new OpusDocument("simple", "/" + num, num));
-            }
-
-            return or;
-        } finally {
-            if (riSearchResponse != null) riSearchResponse.close();
+        OpusResponse or = new OpusResponse();
+        for (String pid : pids) {
+            String num = pid.substring(pid.lastIndexOf(":") + 1);
+            or.addDocument(new OpusDocument("simple", num, num));
         }
+        return or;
     }
 
 }

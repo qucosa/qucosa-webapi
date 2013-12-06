@@ -17,36 +17,34 @@
 
 package de.qucosa.webapi.v1;
 
-import com.yourmediashelf.fedora.client.FedoraClient;
-import com.yourmediashelf.fedora.client.request.FedoraRequest;
-import com.yourmediashelf.fedora.client.response.FindObjectsResponse;
+import de.qucosa.webapi.FedoraRepository;
 import de.qucosa.webapi.v1.xml.OpusResponse;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DocumentResourceTest {
 
-	private FedoraClient fedoraClient;
-	private DocumentResource documentResource;
+    private FedoraRepository fedoraRepository;
+    private DocumentResource documentResource;
 
-	@Before
-	public void setUp() throws Exception {
-		fedoraClient = mock(FedoraClient.class);
-		documentResource = new DocumentResource(fedoraClient);
-	}
+    @Before
+    public void setUp() throws Exception {
+        fedoraRepository = mock(FedoraRepository.class);
+        documentResource = new DocumentResource(fedoraRepository);
+    }
 
-	@Test
-	public void returnsEmptyDocumentList() throws Exception {
-		when(fedoraClient.execute(any(FedoraRequest.class)))
-				.thenReturn(mock(FindObjectsResponse.class));
+    @Test
+    public void returnsEmptyDocumentList() throws Exception {
+        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
 
-		OpusResponse response = documentResource.listAll();
-		assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
-	}
+        OpusResponse response = documentResource.listAll();
+        assertEquals("Document list should be empty.", 0, response.getDocumentList().size());
+    }
 
 }
