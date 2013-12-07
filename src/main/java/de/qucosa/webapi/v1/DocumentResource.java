@@ -18,35 +18,53 @@
 package de.qucosa.webapi.v1;
 
 import de.qucosa.webapi.FedoraRepository;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-import java.io.StringWriter;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.*;
 import java.util.List;
 
 @Controller
 @Scope("request")
-@RequestMapping(value = "/document", produces = {"application/xml", "application/vnd.slub.qucosa-v1+xml"})
+@RequestMapping(produces = {"application/xml; charset=UTF-8",
+        "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
 public class DocumentResource {
+
+    final private DocumentBuilder documentBuilder;
+
+    final private Transformer transformer;
 
     final private FedoraRepository fedoraRepository;
     @Autowired
     private HttpServletRequest httpServletRequest;
 
     @Autowired
-    public DocumentResource(FedoraRepository fedoraRepository) {
+    public DocumentResource(FedoraRepository fedoraRepository) throws ParserConfigurationException, TransformerConfigurationException {
         this.fedoraRepository = fedoraRepository;
+        documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        transformer = TransformerFactory.newInstance().newTransformer();
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
     }
 
-    @RequestMapping(method = RequestMethod.GET)
+    @RequestMapping(value = "/document", method = RequestMethod.GET)
     @ResponseBody
     public String listAll() throws XMLStreamException {
         List<String> pids = fedoraRepository.getPIDsByPattern("^qucosa:");
@@ -74,6 +92,18 @@ public class DocumentResource {
         w.writeEndDocument();
 
         w.flush();
+
+        return sw.toString();
+    }
+
+    @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
+    @ResponseBody
+    public String getDocument(@PathVariable String qucosaID) throws TransformerException, IOException, SAXException {
+        InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
+
+        StringWriter sw = new StringWriter();
+        Result transformResult = new StreamResult(sw);
+        transformer.transform(new DOMSource(documentBuilder.parse(dsContent)), transformResult);
 
         return sw.toString();
     }

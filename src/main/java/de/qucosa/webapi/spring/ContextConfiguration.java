@@ -32,28 +32,28 @@ import java.net.MalformedURLException;
 @Configuration
 public class ContextConfiguration {
 
-	@Autowired
-	private Environment env;
+    @Autowired
+    private Environment env;
 
-	@Bean
-	@Scope("request")
-	public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
-		return new FedoraClient(fedoraCredentials);
-	}
+    @Bean
+    @Scope("request")
+    public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
+        return new FedoraClient(fedoraCredentials);
+    }
 
-	@Bean
-	@Scope("request")
-	public FedoraCredentials fedoraCredentials(Authentication auth) throws MalformedURLException {
-		return new FedoraCredentials(
-				env.getProperty("fedora.host.url"),
-				auth.getName(),
-				String.valueOf(auth.getCredentials()));
-	}
+    @Bean
+    @Scope("request")
+    public FedoraCredentials fedoraCredentials(Authentication auth) throws MalformedURLException {
+        return new FedoraCredentials(
+                env.getProperty("fedora.host.url"),
+                auth.getName(),
+                String.valueOf(auth.getCredentials()));
+    }
 
-	@Bean
-	@Scope("request")
-	public Authentication authentication() {
-		return SecurityContextHolder.getContext().getAuthentication();
-	}
+    @Bean
+    @Scope("request")
+    public Authentication authentication() {
+        return SecurityContextHolder.getContext().getAuthentication();
+    }
 
 }
