@@ -55,7 +55,7 @@ public class DocumentResourceTest {
     public void returnsOpus2XML() throws Exception {
         when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
 
-        String response = documentResource.listAll();
+        String response = documentResource.listAll().getBody();
 
         assertXpathEvaluatesTo("2.0", "/Opus/@version", response);
     }
@@ -64,7 +64,7 @@ public class DocumentResourceTest {
     public void returnsEmptyDocumentList() throws Exception {
         when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
 
-        String response = documentResource.listAll();
+        String response = documentResource.listAll().getBody();
 
         assertXpathNotExists("/Opus/DocumentList/Document", response);
     }
@@ -75,11 +75,16 @@ public class DocumentResourceTest {
         documentList.add("qucosa:1234");
         when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(documentList);
 
-        String response = documentResource.listAll();
+        String response = documentResource.listAll().getBody();
 
         assertXpathEvaluatesTo("/1234", "/Opus/DocumentList/Document/@xlink:href", response);
         assertXpathEvaluatesTo("1234", "/Opus/DocumentList/Document/@xlink:nr", response);
         assertXpathEvaluatesTo("simple", "/Opus/DocumentList/Document/@xlink:type", response);
+    }
+
+    @Test
+    public void returns404() {
+
     }
 
 }
