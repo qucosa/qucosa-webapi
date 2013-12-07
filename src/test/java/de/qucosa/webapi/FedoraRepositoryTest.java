@@ -18,6 +18,7 @@
 package de.qucosa.webapi;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
+import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
 import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
 import org.apache.commons.io.IOUtils;
@@ -27,7 +28,7 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -44,7 +45,7 @@ public class FedoraRepositoryTest {
     }
 
     @Test
-    public void testGetDatastreamContent() throws Exception {
+    public void getsDatastreamContent() throws Exception {
         GetDatastreamResponse dsResponse = mock(GetDatastreamResponse.class);
         when(dsResponse.getEntityInputStream()).thenReturn(new ByteArrayInputStream("Test Content".getBytes()));
         when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenReturn(dsResponse);
@@ -53,4 +54,11 @@ public class FedoraRepositoryTest {
 
         assertEquals("Test Content", IOUtils.toString(contentStream));
     }
+
+    @Test(expected = FedoraClientException.class)
+    public void throwsFedoraClientException() throws Exception {
+        when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenThrow(FedoraClientException.class);
+        fedoraRepository.getDatastreamContent("test:1", "TEST-DS");
+    }
+
 }

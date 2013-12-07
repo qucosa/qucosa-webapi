@@ -18,10 +18,10 @@
 package de.qucosa.webapi;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
+import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
 import com.yourmediashelf.fedora.client.request.RiSearch;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
-import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -68,14 +68,9 @@ public class FedoraRepository {
         }
     }
 
-    public InputStream getDatastreamContent(String pid, String datastreamId) {
-        InputStream response = null;
-        try {
-            FedoraResponse fr = fedoraClient.execute(new GetDatastreamDissemination(pid, datastreamId));
-            response = fr.getEntityInputStream();
-        } finally {
-            return response;
-        }
+    public InputStream getDatastreamContent(String pid, String datastreamId) throws FedoraClientException {
+        FedoraResponse fr = fedoraClient.execute(new GetDatastreamDissemination(pid, datastreamId));
+        return fr.getEntityInputStream();
     }
 
     private void closeIfNotNull(FedoraResponse fr) {

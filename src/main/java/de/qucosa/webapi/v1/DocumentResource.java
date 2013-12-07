@@ -17,6 +17,7 @@
 
 package de.qucosa.webapi.v1;
 
+import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.webapi.FedoraRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -102,14 +103,28 @@ public class DocumentResource {
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws TransformerException, IOException, SAXException {
-        InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
-
-        StringWriter sw = new StringWriter();
-        Result transformResult = new StreamResult(sw);
-        transformer.transform(new DOMSource(documentBuilder.parse(dsContent)), transformResult);
-
-        return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
+    public ResponseEntity<String> getDocument(@PathVariable String qucosaID) {
+        ResponseEntity<String> response = null;
+        try {
+            InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
+            StringWriter sw = new StringWriter();
+            Result transformResult = new StreamResult(sw);
+            transformer.transform(new DOMSource(documentBuilder.parse(dsContent)), transformResult);
+            response = new ResponseEntity<>(sw.toString(), HttpStatus.OK);
+        } catch (FedoraClientException fe) {
+            switch (fe.getStatus()) {
+                case 401: response = new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
+                    break;
+                case 404: response = new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
+                    break;
+                default: response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (Exception ex) {
+            response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        finally {
+            return response;
+        }
     }
 
     private String getHrefLink(String pid) {

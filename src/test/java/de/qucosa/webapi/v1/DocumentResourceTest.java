@@ -17,16 +17,21 @@
 
 package de.qucosa.webapi.v1;
 
+import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.webapi.FedoraRepository;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNull;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
 import static org.mockito.Matchers.anyList;
@@ -83,8 +88,25 @@ public class DocumentResourceTest {
     }
 
     @Test
-    public void returns404() {
+    public void returns404WithNoContent() throws Exception {
+        when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
+                new FedoraClientException(404, "NOT FOUND"));
 
+        ResponseEntity<?> response = documentResource.getDocument("not-there");
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNull("There should be no content", response.getBody());
+    }
+
+    @Test
+    public void returns401WhenNotAuthorized() throws Exception {
+        when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
+                new FedoraClientException(401, "UNAUTHORIZED"));
+
+        ResponseEntity<?> response = documentResource.getDocument("not-allowed");
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNull("There should be no content", response.getBody());
     }
 
 }
