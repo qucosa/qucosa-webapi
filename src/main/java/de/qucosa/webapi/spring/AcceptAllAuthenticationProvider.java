@@ -30,29 +30,29 @@ import java.util.List;
 
 @Component
 public class AcceptAllAuthenticationProvider implements AuthenticationProvider {
-	@Override
-	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-		if (hasValidCredentials(authentication)) {
-			List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-			grantedAuthorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        if (hasValidCredentials(authentication)) {
+            List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+            grantedAuthorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
-			return new UsernamePasswordAuthenticationToken(
-					authentication.getPrincipal(),
-					authentication.getCredentials(),
-					grantedAuthorities);
-		} else {
-			return null;
-		}
-	}
+            return new UsernamePasswordAuthenticationToken(
+                    authentication.getPrincipal(),
+                    authentication.getCredentials(),
+                    grantedAuthorities);
+        } else {
+            return null;
+        }
+    }
 
-	@Override
-	public boolean supports(Class<?> authentication) {
-		return authentication.equals(UsernamePasswordAuthenticationToken.class);
-	}
+    @Override
+    public boolean supports(Class<?> authentication) {
+        return authentication.equals(UsernamePasswordAuthenticationToken.class);
+    }
 
-	private boolean hasValidCredentials(Authentication auth) {
-		String username = auth.getName() == null ? "" : auth.getName();
-		String password = (auth.getCredentials() == null ? "" : String.valueOf(auth.getCredentials()));
-		return !username.isEmpty() && !password.isEmpty();
-	}
+    private boolean hasValidCredentials(Authentication auth) {
+        String username = auth.getName() == null ? "" : auth.getName();
+        String password = (auth.getCredentials() == null ? "" : String.valueOf(auth.getCredentials()));
+        return !username.isEmpty() && !password.isEmpty();
+    }
 }

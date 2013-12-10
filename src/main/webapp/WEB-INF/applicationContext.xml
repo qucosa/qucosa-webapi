@@ -28,6 +28,7 @@
 
     <http create-session="stateless">
         <intercept-url pattern="/**" access="ROLE_ADMIN"/>
+        <custom-filter position="FORM_LOGIN_FILTER" ref="roleParameterAuthenticationFilter"/>
         <http-basic/>
     </http>
 
