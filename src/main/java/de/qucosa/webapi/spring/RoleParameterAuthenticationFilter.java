@@ -19,7 +19,6 @@ package de.qucosa.webapi.spring;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -47,6 +46,6 @@ public class RoleParameterAuthenticationFilter extends GenericFilterBean {
     }
 
     private Authentication createAuthentication(String role) {
-        return new UsernamePasswordAuthenticationToken(role, role, AuthorityUtils.createAuthorityList("ROLE_ADMIN"));
+        return new UsernamePasswordAuthenticationToken(role, role);
     }
 }
