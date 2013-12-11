@@ -25,9 +25,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Properties;
 
 @Configuration
 public class ContextConfiguration {
@@ -44,16 +50,34 @@ public class ContextConfiguration {
     @Bean
     @Scope("request")
     public FedoraCredentials fedoraCredentials(Authentication auth) throws MalformedURLException {
+        String user = null;
+        String password = null;
+
+        //TODO Don't use hard coded web service credentials
+
+        if (auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            user = "fedoraAdmin";
+            password = "fedoraAdmin";
+        } else if (auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_USER"))) {
+            user = "fedoraUser";
+            password = "fedoraUser";
+        }
+
         return new FedoraCredentials(
-                env.getProperty("fedora.host.url"),
-                auth.getName(),
-                String.valueOf(auth.getCredentials()));
+                env.getProperty("fedora.host.url"), user, password);
     }
 
     @Bean
     @Scope("request")
     public Authentication authentication() {
         return SecurityContextHolder.getContext().getAuthentication();
+    }
+
+    @Bean
+    public UserDetailsService qucosaUserDetailsService() throws IOException {
+        Properties userProperties = new Properties();
+        userProperties.load(new FileInputStream(env.getProperty("user.properties")));
+        return new InMemoryUserDetailsManager(userProperties);
     }
 
 }

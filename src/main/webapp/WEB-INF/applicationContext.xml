@@ -22,18 +22,37 @@
             xmlns:context="http://www.springframework.org/schema/context"
             xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
+    <bean:bean id="roleHierarchy" class="org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl">
+        <bean:property name="hierarchy" value="ROLE_ADMIN &gt; ROLE_USER"/>
+    </bean:bean>
+
+    <bean:bean id="roleVoter" class="org.springframework.security.access.vote.RoleHierarchyVoter">
+        <bean:constructor-arg ref="roleHierarchy"/>
+    </bean:bean>
+
+    <bean:bean id="accessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+        <bean:constructor-arg name="decisionVoters">
+            <bean:list>
+                <bean:ref bean="roleVoter"/>
+            </bean:list>
+        </bean:constructor-arg>
+    </bean:bean>
+
     <context:component-scan base-package="de.qucosa.webapi.spring"/>
 
     <http pattern="/index.jsp" security="none"/>
 
-    <http create-session="stateless">
-        <intercept-url pattern="/**" access="ROLE_ADMIN"/>
+    <http create-session="stateless" access-decision-manager-ref="accessDecisionManager">
+        <intercept-url pattern="/**" access="ROLE_USER" method="GET"/>
+        <intercept-url pattern="/**" access="ROLE_ADMIN" method="PUT"/>
+        <intercept-url pattern="/**" access="ROLE_ADMIN" method="POST"/>
+        <intercept-url pattern="/**" access="ROLE_ADMIN" method="DELETE"/>
         <custom-filter position="FORM_LOGIN_FILTER" ref="roleParameterAuthenticationFilter"/>
         <http-basic/>
     </http>
 
-    <authentication-manager erase-credentials="false">
-        <authentication-provider ref="acceptAllAuthenticationProvider"/>
+    <authentication-manager>
+        <authentication-provider user-service-ref="qucosaUserDetailsService"/>
     </authentication-manager>
 
 </bean:beans>
