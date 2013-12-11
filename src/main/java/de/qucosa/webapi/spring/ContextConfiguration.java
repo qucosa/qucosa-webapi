@@ -24,6 +24,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
+import org.springframework.security.access.AccessDecisionManager;
+import org.springframework.security.access.AccessDecisionVoter;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.access.vote.RoleHierarchyVoter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,6 +37,8 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 @Configuration
@@ -78,6 +84,16 @@ public class ContextConfiguration {
         Properties userProperties = new Properties();
         userProperties.load(new FileInputStream(env.getProperty("user.properties")));
         return new InMemoryUserDetailsManager(userProperties);
+    }
+
+    @Bean
+    public AccessDecisionManager accessDecisionManager() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        roleHierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER");
+        RoleHierarchyVoter roleHierarchyVoter = new RoleHierarchyVoter(roleHierarchy);
+        List<AccessDecisionVoter> roleHierarchyVoters = new ArrayList<>();
+        roleHierarchyVoters.add(roleHierarchyVoter);
+        return new org.springframework.security.access.vote.AffirmativeBased(roleHierarchyVoters);
     }
 
 }
