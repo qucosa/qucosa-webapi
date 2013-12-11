@@ -19,71 +19,47 @@ package de.qucosa.webapi.spring;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraCredentials;
-import org.springframework.beans.factory.annotation.Autowired;
+import de.qucosa.webapi.FedoraAuthorityDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
-import org.springframework.core.env.Environment;
 import org.springframework.security.access.AccessDecisionManager;
 import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.access.vote.RoleHierarchyVoter;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 @Configuration
 public class ContextConfiguration {
 
-    @Autowired
-    private Environment env;
-
     @Bean
     @Scope("request")
     public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
-        return new FedoraClient(fedoraCredentials);
+        FedoraClient fedoraClient = new FedoraClient(fedoraCredentials);
+        return fedoraClient;
     }
 
     @Bean
     @Scope("request")
-    public FedoraCredentials fedoraCredentials(Authentication auth) throws MalformedURLException {
-        String user = null;
-        String password = null;
-
-        //TODO Don't use hard coded web service credentials
-
-        if (auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            user = "fedoraAdmin";
-            password = "fedoraAdmin";
-        } else if (auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_USER"))) {
-            user = "fedoraUser";
-            password = "fedoraUser";
+    public FedoraCredentials fedoraCredentials(Authentication auth, FedoraAuthorityDetails fedoraAuthorityDetails) throws Exception {
+        GrantedAuthority firstGranted = auth.getAuthorities().iterator().next();
+        Map<String, FedoraCredentials> fedoraAuthorityDetailsCredentialsMap = fedoraAuthorityDetails.getAuthorityCredentialsMap();
+        if (fedoraAuthorityDetailsCredentialsMap.containsKey(firstGranted.getAuthority())) {
+            return fedoraAuthorityDetailsCredentialsMap.get(firstGranted.getAuthority());
         }
-
-        return new FedoraCredentials(
-                env.getProperty("fedora.host.url"), user, password);
+        throw new Exception("No Fedora credential configured for authority " + firstGranted.getAuthority());
     }
 
     @Bean
     @Scope("request")
     public Authentication authentication() {
         return SecurityContextHolder.getContext().getAuthentication();
-    }
-
-    @Bean
-    public UserDetailsService qucosaUserDetailsService() throws IOException {
-        Properties userProperties = new Properties();
-        userProperties.load(new FileInputStream(env.getProperty("user.properties")));
-        return new InMemoryUserDetailsManager(userProperties);
     }
 
     @Bean

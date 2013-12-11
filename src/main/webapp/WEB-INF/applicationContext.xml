@@ -22,7 +22,11 @@
             xmlns:context="http://www.springframework.org/schema/context"
             xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
+    <context:property-placeholder system-properties-mode="ENVIRONMENT"/>
     <context:component-scan base-package="de.qucosa.webapi.spring"/>
+
+    <bean:import resource="default-fedora-authority-details.xml"/>
+    <bean:import resource="file:${qucosa.webapi.home}/config/*.xml"/>
 
     <http pattern="/index.jsp" security="none"/>
 
@@ -34,9 +38,5 @@
         <custom-filter position="FORM_LOGIN_FILTER" ref="roleParameterAuthenticationFilter"/>
         <http-basic/>
     </http>
-
-    <authentication-manager>
-        <authentication-provider user-service-ref="qucosaUserDetailsService"/>
-    </authentication-manager>
 
 </bean:beans>
