@@ -19,41 +19,57 @@ package de.qucosa.webapi.spring;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraCredentials;
-import org.springframework.beans.factory.annotation.Autowired;
+import de.qucosa.webapi.FedoraAuthorityDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
-import org.springframework.core.env.Environment;
+import org.springframework.security.access.AccessDecisionManager;
+import org.springframework.security.access.AccessDecisionVoter;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.access.vote.RoleHierarchyVoter;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class ContextConfiguration {
 
-    @Autowired
-    private Environment env;
-
     @Bean
     @Scope("request")
     public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
-        return new FedoraClient(fedoraCredentials);
+        FedoraClient fedoraClient = new FedoraClient(fedoraCredentials);
+        return fedoraClient;
     }
 
     @Bean
     @Scope("request")
-    public FedoraCredentials fedoraCredentials(Authentication auth) throws MalformedURLException {
-        return new FedoraCredentials(
-                env.getProperty("fedora.host.url"),
-                auth.getName(),
-                String.valueOf(auth.getCredentials()));
+    public FedoraCredentials fedoraCredentials(Authentication auth, FedoraAuthorityDetails fedoraAuthorityDetails) throws Exception {
+        GrantedAuthority firstGranted = auth.getAuthorities().iterator().next();
+        Map<String, FedoraCredentials> fedoraAuthorityDetailsCredentialsMap = fedoraAuthorityDetails.getAuthorityCredentialsMap();
+        if (fedoraAuthorityDetailsCredentialsMap.containsKey(firstGranted.getAuthority())) {
+            return fedoraAuthorityDetailsCredentialsMap.get(firstGranted.getAuthority());
+        }
+        throw new Exception("No Fedora credential configured for authority " + firstGranted.getAuthority());
     }
 
     @Bean
     @Scope("request")
     public Authentication authentication() {
         return SecurityContextHolder.getContext().getAuthentication();
+    }
+
+    @Bean
+    public AccessDecisionManager accessDecisionManager() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        roleHierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER");
+        RoleHierarchyVoter roleHierarchyVoter = new RoleHierarchyVoter(roleHierarchy);
+        List<AccessDecisionVoter> roleHierarchyVoters = new ArrayList<>();
+        roleHierarchyVoters.add(roleHierarchyVoter);
+        return new org.springframework.security.access.vote.AffirmativeBased(roleHierarchyVoters);
     }
 
 }

@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.DocumentBuilder;
@@ -40,7 +39,6 @@ import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.List;
@@ -113,16 +111,18 @@ public class DocumentResource {
             response = new ResponseEntity<>(sw.toString(), HttpStatus.OK);
         } catch (FedoraClientException fe) {
             switch (fe.getStatus()) {
-                case 401: response = new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
+                case 401:
+                    response = new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
                     break;
-                case 404: response = new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
+                case 404:
+                    response = new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
                     break;
-                default: response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
+                default:
+                    response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (Exception ex) {
             response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        finally {
+        } finally {
             return response;
         }
     }
