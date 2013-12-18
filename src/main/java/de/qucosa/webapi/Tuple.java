@@ -18,14 +18,14 @@
 package de.qucosa.webapi;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class Tuple<T> extends ArrayList<T> {
 
+    @SafeVarargs
     public Tuple(T... elements) {
         super(elements.length);
-        for(T e : elements) {
-            this.add(e);
-        }
+        Collections.addAll(this, elements);
     }
 
 }

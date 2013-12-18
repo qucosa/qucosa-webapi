@@ -36,13 +36,12 @@ import java.util.List;
 import java.util.Map;
 
 @Configuration
-public class ContextConfiguration {
+class ContextConfiguration {
 
     @Bean
     @Scope("request")
     public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
-        FedoraClient fedoraClient = new FedoraClient(fedoraCredentials);
-        return fedoraClient;
+        return new FedoraClient(fedoraCredentials);
     }
 
     @Bean

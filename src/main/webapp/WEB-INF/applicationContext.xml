@@ -16,6 +16,7 @@
   ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
+<!--suppress SpringPlaceholdersInspection -->
 <bean:beans xmlns="http://www.springframework.org/schema/security"
             xmlns:bean="http://www.springframework.org/schema/beans"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

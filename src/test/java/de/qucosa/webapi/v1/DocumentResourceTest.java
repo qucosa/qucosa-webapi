@@ -45,7 +45,7 @@ public class DocumentResourceTest {
     private DocumentResource documentResource;
 
     static {
-        Map prefixMap = new HashMap();
+        Map<String, String> prefixMap = new HashMap<>();
         prefixMap.put("xlink", "http://www.w3.org/1999/xlink");
         XMLUnit.setXpathNamespaceContext(new SimpleNamespaceContext(prefixMap));
     }
@@ -56,6 +56,7 @@ public class DocumentResourceTest {
         documentResource = new DocumentResource(fedoraRepository);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void returnsOpus2XML() throws Exception {
         when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
@@ -65,6 +66,7 @@ public class DocumentResourceTest {
         assertXpathEvaluatesTo("2.0", "/Opus/@version", response);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void returnsEmptyDocumentList() throws Exception {
         when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());

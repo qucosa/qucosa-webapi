@@ -46,7 +46,7 @@ import java.util.List;
 @Scope("request")
 @RequestMapping(produces = {"application/xml; charset=UTF-8",
         "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
-public class DocumentResource {
+class DocumentResource {
 
     final private DocumentBuilder documentBuilder;
     final private Transformer transformer;
@@ -69,7 +69,6 @@ public class DocumentResource {
     @RequestMapping(value = "/document", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> listAll() {
-        ResponseEntity<String> response = null;
         try {
             List<String> pids = fedoraRepository.getPIDsByPattern("^qucosa:");
 
@@ -93,29 +92,24 @@ public class DocumentResource {
             w.writeEndDocument();
             w.flush();
 
-            response = new ResponseEntity<>(sw.toString(), HttpStatus.OK);
+            return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
         } catch (FedoraClientException fe) {
             switch (fe.getStatus()) {
                 case 401:
-                    response = new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
-                    break;
+                    return new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
                 case 404:
-                    response = new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
-                    break;
+                    return new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
                 default:
-                    response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
+                    return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (Exception e) {
-            response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        } finally {
-            return response;
+            return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) {
-        ResponseEntity<String> response = null;
         try {
             InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
 
@@ -123,22 +117,18 @@ public class DocumentResource {
             Result transformResult = new StreamResult(sw);
             transformer.transform(new DOMSource(documentBuilder.parse(dsContent)), transformResult);
 
-            response = new ResponseEntity<>(sw.toString(), HttpStatus.OK);
+            return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
         } catch (FedoraClientException fe) {
             switch (fe.getStatus()) {
                 case 401:
-                    response = new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
-                    break;
+                    return new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
                 case 404:
-                    response = new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
-                    break;
+                    return new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
                 default:
-                    response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
+                    return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (Exception ex) {
-            response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        } finally {
-            return response;
+            return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

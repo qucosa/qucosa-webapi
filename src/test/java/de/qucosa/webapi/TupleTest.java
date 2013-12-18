@@ -24,18 +24,21 @@ import static org.junit.Assert.assertEquals;
 
 public class TupleTest {
 
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     @Test
     public void emptyTupleHasNoElements() {
         Tuple<Object> t = new Tuple<>();
         assertEquals(0, t.size());
     }
 
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     @Test
     public void tripleHasThreeElements() {
         Tuple<String> t = new Tuple<>("Foo", "Bar", "Baz");
         assertEquals(3, t.size());
     }
 
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     @Test
     public void elementsAreInTheRightOrder() {
         Tuple<String> t = new Tuple<>("one", "two", "three", "four");

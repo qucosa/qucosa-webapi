@@ -55,6 +55,7 @@ public class FedoraRepositoryTest {
         assertEquals("Test Content", IOUtils.toString(contentStream));
     }
 
+    @SuppressWarnings("unchecked")
     @Test(expected = FedoraClientException.class)
     public void throwsFedoraClientException() throws Exception {
         when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenThrow(FedoraClientException.class);

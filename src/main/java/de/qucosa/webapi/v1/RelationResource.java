@@ -41,7 +41,7 @@ import java.util.List;
 @Scope("request")
 @RequestMapping(produces = {"application/xml; charset=UTF-8",
         "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
-public class RelationResource {
+class RelationResource {
 
     private static final Log log = LogFactory.getLog(RelationResource.class);
 
@@ -55,7 +55,6 @@ public class RelationResource {
     @RequestMapping(value = "/relation/urn/{URN}")
     @ResponseBody
     public ResponseEntity<String> describeRelationships(@PathVariable String URN) throws XMLStreamException {
-        ResponseEntity<String> response = null;
         try {
             String pid = fedoraRepository.getPIDByIdentifier(URN);
             List<Tuple<String>> constituentPredecessorPids = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);
@@ -70,7 +69,7 @@ public class RelationResource {
             w.writeStartElement("Opus");
             w.writeStartElement("Opus_Document");
             w.writeStartElement("DocumentId");
-            w.writeCharacters(stripPrefix("qucosa:", pid));
+            w.writeCharacters(stripPrefix(pid));
             w.writeEndElement();
             w.writeStartElement("Relations");
             writeRelationElement(constituentPredecessorPids, w, "PredecessorRelation", "journal");
@@ -83,24 +82,20 @@ public class RelationResource {
             w.writeEndDocument();
             w.flush();
 
-            response = new ResponseEntity<>(sw.toString(), HttpStatus.OK);
+            return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
         } catch (FedoraClientException fe) {
             switch (fe.getStatus()) {
                 case 401:
-                    response = new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
-                    break;
+                    return new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
                 case 404:
-                    response = new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
-                    break;
+                    return new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
                 default:
-                    response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
                     log.error(fe);
+                    return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (Exception ex) {
-            response = new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
             log.error(ex);
-        } finally {
-            return response;
+            return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -132,9 +127,9 @@ public class RelationResource {
         }
     }
 
-    private String stripPrefix(String prefix, String s) {
-        if (s.startsWith(prefix)) {
-            return s.substring(prefix.length());
+    private String stripPrefix(String s) {
+        if (s.startsWith("qucosa:")) {
+            return s.substring("qucosa:".length());
         }
         return s;
     }
