@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
 
@@ -54,49 +55,34 @@ class RelationResource {
 
     @RequestMapping(value = "/relation/urn/{URN}")
     @ResponseBody
-    public ResponseEntity<String> describeRelationships(@PathVariable String URN) throws XMLStreamException {
-        try {
-            String pid = fedoraRepository.getPIDByIdentifier(URN);
-            List<Tuple<String>> constituentPredecessorPids = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);
-            List<Tuple<String>> derivativePredecessorPIDs = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_DERIVATIVE);
-            List<Tuple<String>> constituentSuccessorPids = fedoraRepository.getSuccessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);
-            List<Tuple<String>> derivativeSuccessorPids = fedoraRepository.getSuccessorPIDs(pid, FedoraRepository.RELATION_DERIVATIVE);
+    public ResponseEntity<String> describeRelationships(@PathVariable String URN) throws XMLStreamException, IOException, FedoraClientException {
+        String pid = fedoraRepository.getPIDByIdentifier(URN);
+        List<Tuple<String>> constituentPredecessorPids = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);
+        List<Tuple<String>> derivativePredecessorPIDs = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_DERIVATIVE);
+        List<Tuple<String>> constituentSuccessorPids = fedoraRepository.getSuccessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);
+        List<Tuple<String>> derivativeSuccessorPids = fedoraRepository.getSuccessorPIDs(pid, FedoraRepository.RELATION_DERIVATIVE);
 
-            XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newFactory();
-            StringWriter sw = new StringWriter();
-            XMLStreamWriter w = xmlOutputFactory.createXMLStreamWriter(sw);
-            w.writeStartDocument("UTF-8", "1.0");
-            w.writeStartElement("Opus");
-            w.writeStartElement("Opus_Document");
-            w.writeStartElement("DocumentId");
-            w.writeCharacters(stripPrefix(pid));
-            w.writeEndElement();
-            w.writeStartElement("Relations");
-            writeRelationElement(constituentPredecessorPids, w, "PredecessorRelation", "journal");
-            writeRelationElement(derivativePredecessorPIDs, w, "PredecessorRelation", "predecessor");
-            writeRelationElement(constituentSuccessorPids, w, "SuccessorRelation", "issue");
-            writeRelationElement(derivativeSuccessorPids, w, "SuccessorRelation", "predecessor");
-            w.writeEndElement();
-            w.writeEndElement();
-            w.writeEndElement();
-            w.writeEndDocument();
-            w.flush();
+        XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newFactory();
+        StringWriter sw = new StringWriter();
+        XMLStreamWriter w = xmlOutputFactory.createXMLStreamWriter(sw);
+        w.writeStartDocument("UTF-8", "1.0");
+        w.writeStartElement("Opus");
+        w.writeStartElement("Opus_Document");
+        w.writeStartElement("DocumentId");
+        w.writeCharacters(stripPrefix(pid));
+        w.writeEndElement();
+        w.writeStartElement("Relations");
+        writeRelationElement(constituentPredecessorPids, w, "PredecessorRelation", "journal");
+        writeRelationElement(derivativePredecessorPIDs, w, "PredecessorRelation", "predecessor");
+        writeRelationElement(constituentSuccessorPids, w, "SuccessorRelation", "issue");
+        writeRelationElement(derivativeSuccessorPids, w, "SuccessorRelation", "predecessor");
+        w.writeEndElement();
+        w.writeEndElement();
+        w.writeEndElement();
+        w.writeEndDocument();
+        w.flush();
 
-            return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
-        } catch (FedoraClientException fe) {
-            switch (fe.getStatus()) {
-                case 401:
-                    return new ResponseEntity<>((String) null, HttpStatus.UNAUTHORIZED);
-                case 404:
-                    return new ResponseEntity<>((String) null, HttpStatus.NOT_FOUND);
-                default:
-                    log.error(fe);
-                    return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        } catch (Exception ex) {
-            log.error(ex);
-            return new ResponseEntity<>((String) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
     }
 
     private void writeRelationElement(List<Tuple<String>> tuples, XMLStreamWriter w, String name, String type) throws XMLStreamException {
