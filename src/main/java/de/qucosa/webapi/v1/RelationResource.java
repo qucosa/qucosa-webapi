@@ -20,8 +20,6 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.repository.FedoraRepositoryConnection;
 import de.qucosa.util.Tuple;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
@@ -43,8 +41,6 @@ import java.util.List;
 @RequestMapping(produces = {"application/xml; charset=UTF-8",
         "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
 class RelationResource {
-
-    private static final Log log = LogFactory.getLog(RelationResource.class);
 
     final private FedoraRepositoryConnection fedoraRepositoryConnection;
 

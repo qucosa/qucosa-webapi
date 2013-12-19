@@ -18,19 +18,11 @@
 package de.qucosa.repository;
 
 import com.yourmediashelf.fedora.client.FedoraCredentials;
-
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-public class FedoraAuthorityCredentialsMap {
-
-    final private Map<String, FedoraCredentials> authorityCredentialsMap;
-
-    public FedoraAuthorityCredentialsMap(Map<String, FedoraCredentials> authorityCredentialsMap) {
-        this.authorityCredentialsMap = authorityCredentialsMap;
-    }
-
-    public Map<String, FedoraCredentials> getAuthorityCredentialsMap() {
-        return Collections.unmodifiableMap(authorityCredentialsMap);
+class FedoraAuthorityCredentialsMap extends HashMap<String, FedoraCredentials> {
+    public FedoraAuthorityCredentialsMap(Map<String, FedoraCredentials> m) {
+        super(m);
     }
 }

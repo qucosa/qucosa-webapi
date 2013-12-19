@@ -17,9 +17,6 @@
 
 package de.qucosa.spring;
 
-import com.yourmediashelf.fedora.client.FedoraClient;
-import com.yourmediashelf.fedora.client.FedoraCredentials;
-import de.qucosa.repository.FedoraAuthorityCredentialsMap;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -28,32 +25,13 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.access.vote.RoleHierarchyVoter;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 class ContextConfiguration {
-
-    @Bean
-    @Scope("request")
-    public FedoraClient fedoraClient(FedoraCredentials fedoraCredentials) {
-        return new FedoraClient(fedoraCredentials);
-    }
-
-    @Bean
-    @Scope("request")
-    public FedoraCredentials fedoraCredentials(Authentication auth, FedoraAuthorityCredentialsMap fedoraAuthorityCredentialsMap) throws Exception {
-        GrantedAuthority firstGranted = auth.getAuthorities().iterator().next();
-        Map<String, FedoraCredentials> fedoraAuthorityDetailsCredentialsMap = fedoraAuthorityCredentialsMap.getAuthorityCredentialsMap();
-        if (fedoraAuthorityDetailsCredentialsMap.containsKey(firstGranted.getAuthority())) {
-            return fedoraAuthorityDetailsCredentialsMap.get(firstGranted.getAuthority());
-        }
-        throw new Exception("No Fedora credential configured for authority " + firstGranted.getAuthority());
-    }
 
     @Bean
     @Scope("request")

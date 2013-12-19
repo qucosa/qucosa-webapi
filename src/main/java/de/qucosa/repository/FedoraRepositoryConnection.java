@@ -24,9 +24,8 @@ import com.yourmediashelf.fedora.client.request.RiSearch;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
 import de.qucosa.util.Tuple;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Repository;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,18 +34,17 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-@Repository
-@Scope("request")
 public class FedoraRepositoryConnection {
 
-    private final FedoraClient fedoraClient;
+    private static final Log log = LogFactory.getLog(FedoraRepositoryConnection.class);
 
     public static final String RELATION_DERIVATIVE = "isDerivationOf";
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
+    private final FedoraClient fedoraClient;
 
-    @Autowired
     public FedoraRepositoryConnection(FedoraClient fedoraClient) {
         this.fedoraClient = fedoraClient;
+        log.info("Connection created");
     }
 
     public List<String> getPIDsByPattern(String regexp) throws FedoraClientException, IOException {
@@ -68,7 +66,7 @@ public class FedoraRepositoryConnection {
 
     public String getPIDByIdentifier(String identifier) throws FedoraClientException, IOException {
         String result = null;
-        String query =  "select $pid where { $pid <dc:identifier> '" + identifier + "' }";
+        String query = "select $pid where { $pid <dc:identifier> '" + identifier + "' }";
         RiSearchResponse riSearchResponse = null;
         try {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
