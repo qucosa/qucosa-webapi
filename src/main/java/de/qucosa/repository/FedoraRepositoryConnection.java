@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi;
+package de.qucosa.repository;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
@@ -23,6 +23,7 @@ import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
 import com.yourmediashelf.fedora.client.request.RiSearch;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
+import de.qucosa.util.Tuple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Repository;
@@ -36,7 +37,7 @@ import java.util.List;
 
 @Repository
 @Scope("request")
-public class FedoraRepository {
+public class FedoraRepositoryConnection {
 
     private final FedoraClient fedoraClient;
 
@@ -44,7 +45,7 @@ public class FedoraRepository {
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
 
     @Autowired
-    public FedoraRepository(FedoraClient fedoraClient) {
+    public FedoraRepositoryConnection(FedoraClient fedoraClient) {
         this.fedoraClient = fedoraClient;
     }
 

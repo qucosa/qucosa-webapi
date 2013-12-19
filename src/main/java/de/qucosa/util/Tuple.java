@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi;
+package de.qucosa.util;
 
 import java.util.ArrayList;
 import java.util.Collections;

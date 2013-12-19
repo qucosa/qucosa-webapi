@@ -18,8 +18,8 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.webapi.FedoraRepository;
-import de.qucosa.webapi.Tuple;
+import de.qucosa.repository.FedoraRepositoryConnection;
+import de.qucosa.util.Tuple;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class RelationResourceTest {
 
     @Autowired
-    private FedoraRepository fedoraRepository;
+    private FedoraRepositoryConnection fedoraRepositoryConnection;
     @Autowired
     private RelationResource relationResource;
     @Autowired
@@ -66,19 +66,19 @@ public class RelationResourceTest {
 
     @After
     public void tearDown() {
-        Mockito.reset(fedoraRepository);
+        Mockito.reset(fedoraRepositoryConnection);
     }
 
     @Test
     public void returnsOpusXML() throws Exception {
-        when(fedoraRepository.getPIDByIdentifier(anyString())).thenReturn("qucosa:4711");
+        when(fedoraRepositoryConnection.getPIDByIdentifier(anyString())).thenReturn("qucosa:4711");
         ResponseEntity<String> response = relationResource.describeRelationships("urn:foo:bar:4711");
         assertXpathExists("/Opus", response.getBody());
     }
 
     @Test
     public void hasDocumentIdElement() throws Exception {
-        when(fedoraRepository.getPIDByIdentifier(anyString())).thenReturn("qucosa:4712");
+        when(fedoraRepositoryConnection.getPIDByIdentifier(anyString())).thenReturn("qucosa:4712");
         ResponseEntity<String> response = relationResource.describeRelationships("urn:foo:bar:4712");
         assertXpathEvaluatesTo("4712", "/Opus/Opus_Document/DocumentId", response.getBody());
     }
@@ -87,8 +87,8 @@ public class RelationResourceTest {
     public void hasPredecessorRelationElement() throws Exception {
         List<Tuple<String>> predecessorTuple = new ArrayList<>(1);
         predecessorTuple.add(new Tuple<>("test:URI", "test:URN", "test:Title"));
-        when(fedoraRepository.getPIDByIdentifier(anyString())).thenReturn("qucosa:4713");
-        when(fedoraRepository.getPredecessorPIDs(anyString(), eq(FedoraRepository.RELATION_DERIVATIVE))).thenReturn(predecessorTuple);
+        when(fedoraRepositoryConnection.getPIDByIdentifier(anyString())).thenReturn("qucosa:4713");
+        when(fedoraRepositoryConnection.getPredecessorPIDs(anyString(), eq(FedoraRepositoryConnection.RELATION_DERIVATIVE))).thenReturn(predecessorTuple);
 
         ResponseEntity<String> response = relationResource.describeRelationships("urn:foo:4713");
 
@@ -103,8 +103,8 @@ public class RelationResourceTest {
     public void hasSuccessorRelationElements() throws Exception {
         List<Tuple<String>> successorTuple = new ArrayList<>(2);
         successorTuple.add(new Tuple<>("test:URI_1", "test:URN_1", "test:Title_1"));
-        when(fedoraRepository.getPIDByIdentifier(anyString())).thenReturn("qucosa:4714");
-        when(fedoraRepository.getSuccessorPIDs(anyString(), eq(FedoraRepository.RELATION_CONSTITUENT))).thenReturn(successorTuple);
+        when(fedoraRepositoryConnection.getPIDByIdentifier(anyString())).thenReturn("qucosa:4714");
+        when(fedoraRepositoryConnection.getSuccessorPIDs(anyString(), eq(FedoraRepositoryConnection.RELATION_CONSTITUENT))).thenReturn(successorTuple);
 
         ResponseEntity<String> response = relationResource.describeRelationships("urn:foo:4714");
 
@@ -117,7 +117,7 @@ public class RelationResourceTest {
 
     @Test
     public void returns404WithNoContent() throws Exception {
-        when(fedoraRepository.getPIDByIdentifier(anyString())).thenThrow(
+        when(fedoraRepositoryConnection.getPIDByIdentifier(anyString())).thenThrow(
                 new FedoraClientException(404, "NOT FOUND"));
 
         mockMvc.perform(get("/relation/urn/urn:not-there")
@@ -127,7 +127,7 @@ public class RelationResourceTest {
 
     @Test
     public void returns401WhenNotAuthorized() throws Exception {
-        when(fedoraRepository.getPIDByIdentifier(anyString())).thenThrow(
+        when(fedoraRepositoryConnection.getPIDByIdentifier(anyString())).thenThrow(
                 new FedoraClientException(401, "UNAUTHORIZED"));
 
         mockMvc.perform(get("/relation/urn/urn:no-auth")

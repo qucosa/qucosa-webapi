@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi;
+package de.qucosa.repository;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
@@ -33,15 +33,15 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class FedoraRepositoryTest {
+public class FedoraRepositoryConnectionTest {
 
-    private FedoraRepository fedoraRepository;
+    private FedoraRepositoryConnection fedoraRepositoryConnection;
     private FedoraClient fedoraClient;
 
     @Before
     public void setUp() {
         fedoraClient = mock(FedoraClient.class);
-        fedoraRepository = new FedoraRepository(fedoraClient);
+        fedoraRepositoryConnection = new FedoraRepositoryConnection(fedoraClient);
     }
 
     @Test
@@ -50,7 +50,7 @@ public class FedoraRepositoryTest {
         when(dsResponse.getEntityInputStream()).thenReturn(new ByteArrayInputStream("Test Content".getBytes()));
         when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenReturn(dsResponse);
 
-        InputStream contentStream = fedoraRepository.getDatastreamContent("test:1", "TEST-DS");
+        InputStream contentStream = fedoraRepositoryConnection.getDatastreamContent("test:1", "TEST-DS");
 
         assertEquals("Test Content", IOUtils.toString(contentStream));
     }
@@ -59,7 +59,7 @@ public class FedoraRepositoryTest {
     @Test(expected = FedoraClientException.class)
     public void throwsFedoraClientException() throws Exception {
         when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenThrow(FedoraClientException.class);
-        fedoraRepository.getDatastreamContent("test:1", "TEST-DS");
+        fedoraRepositoryConnection.getDatastreamContent("test:1", "TEST-DS");
     }
 
 }

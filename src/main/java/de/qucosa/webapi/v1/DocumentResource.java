@@ -18,7 +18,7 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.webapi.FedoraRepository;
+import de.qucosa.repository.FedoraRepositoryConnection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
@@ -54,13 +54,13 @@ class DocumentResource {
     final private DocumentBuilder documentBuilder;
     final private Transformer transformer;
     final private XMLOutputFactory xmlOutputFactory;
-    final private FedoraRepository fedoraRepository;
+    final private FedoraRepositoryConnection fedoraRepositoryConnection;
     @Autowired
     private HttpServletRequest httpServletRequest;
 
     @Autowired
-    public DocumentResource(FedoraRepository fedoraRepository) throws ParserConfigurationException, TransformerConfigurationException {
-        this.fedoraRepository = fedoraRepository;
+    public DocumentResource(FedoraRepositoryConnection fedoraRepositoryConnection) throws ParserConfigurationException, TransformerConfigurationException {
+        this.fedoraRepositoryConnection = fedoraRepositoryConnection;
         documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 
         transformer = TransformerFactory.newInstance().newTransformer();
@@ -72,7 +72,7 @@ class DocumentResource {
     @RequestMapping(value = "/document", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> listAll() throws IOException, FedoraClientException, XMLStreamException {
-        List<String> pids = fedoraRepository.getPIDsByPattern("^qucosa:");
+        List<String> pids = fedoraRepositoryConnection.getPIDsByPattern("^qucosa:");
 
         StringWriter sw = new StringWriter();
         XMLStreamWriter w = xmlOutputFactory.createXMLStreamWriter(sw);
@@ -100,7 +100,7 @@ class DocumentResource {
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws FedoraClientException, IOException, SAXException, TransformerException {
-        InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
+        InputStream dsContent = fedoraRepositoryConnection.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
         StringWriter sw = new StringWriter();
         Result transformResult = new StreamResult(sw);
         transformer.transform(new DOMSource(documentBuilder.parse(dsContent)), transformResult);

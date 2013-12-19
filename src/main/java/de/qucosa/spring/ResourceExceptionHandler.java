@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi.spring;
+package de.qucosa.spring;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import org.springframework.http.HttpStatus;

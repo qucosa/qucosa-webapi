@@ -15,11 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi.spring;
+package de.qucosa.spring;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraCredentials;
-import de.qucosa.webapi.FedoraAuthorityDetails;
+import de.qucosa.repository.FedoraAuthorityCredentialsMap;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -46,9 +46,9 @@ class ContextConfiguration {
 
     @Bean
     @Scope("request")
-    public FedoraCredentials fedoraCredentials(Authentication auth, FedoraAuthorityDetails fedoraAuthorityDetails) throws Exception {
+    public FedoraCredentials fedoraCredentials(Authentication auth, FedoraAuthorityCredentialsMap fedoraAuthorityCredentialsMap) throws Exception {
         GrantedAuthority firstGranted = auth.getAuthorities().iterator().next();
-        Map<String, FedoraCredentials> fedoraAuthorityDetailsCredentialsMap = fedoraAuthorityDetails.getAuthorityCredentialsMap();
+        Map<String, FedoraCredentials> fedoraAuthorityDetailsCredentialsMap = fedoraAuthorityCredentialsMap.getAuthorityCredentialsMap();
         if (fedoraAuthorityDetailsCredentialsMap.containsKey(firstGranted.getAuthority())) {
             return fedoraAuthorityDetailsCredentialsMap.get(firstGranted.getAuthority());
         }
