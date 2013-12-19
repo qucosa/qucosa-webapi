@@ -21,28 +21,47 @@ import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.webapi.FedoraRepository;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration("classpath:testContext.xml")
+@WebAppConfiguration
 public class DocumentResourceTest {
 
+    @Autowired
     private FedoraRepository fedoraRepository;
+    @Autowired
     private DocumentResource documentResource;
+    @Autowired
+    private WebApplicationContext wac;
+    private MockMvc mockMvc;
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     static {
         Map<String, String> prefixMap = new HashMap<>();
@@ -52,8 +71,12 @@ public class DocumentResourceTest {
 
     @Before
     public void setUp() throws Exception {
-        fedoraRepository = mock(FedoraRepository.class);
-        documentResource = new DocumentResource(fedoraRepository);
+        mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+    }
+
+    @After
+    public void tearDown() {
+        Mockito.reset(fedoraRepository);
     }
 
     @SuppressWarnings("unchecked")
@@ -84,7 +107,7 @@ public class DocumentResourceTest {
 
         String response = documentResource.listAll().getBody();
 
-        assertXpathEvaluatesTo("/1234", "/Opus/DocumentList/Document/@xlink:href", response);
+        assertXpathEvaluatesTo(httpServletRequest.getRequestURL() + "/1234", "/Opus/DocumentList/Document/@xlink:href", response);
         assertXpathEvaluatesTo("1234", "/Opus/DocumentList/Document/@xlink:nr", response);
         assertXpathEvaluatesTo("simple", "/Opus/DocumentList/Document/@xlink:type", response);
     }
@@ -94,10 +117,9 @@ public class DocumentResourceTest {
         when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
                 new FedoraClientException(404, "NOT FOUND"));
 
-        ResponseEntity<?> response = documentResource.getDocument("not-there");
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNull("There should be no content", response.getBody());
+        mockMvc.perform(get("/document/no-valid-id")
+                .accept(MediaType.ALL))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -105,10 +127,9 @@ public class DocumentResourceTest {
         when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
                 new FedoraClientException(401, "UNAUTHORIZED"));
 
-        ResponseEntity<?> response = documentResource.getDocument("not-allowed");
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull("There should be no content", response.getBody());
+        mockMvc.perform(get("/document/no-auth")
+                .accept(MediaType.ALL))
+                .andExpect(status().isUnauthorized());
     }
 
 }
