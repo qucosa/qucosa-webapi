@@ -20,32 +20,53 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.webapi.FedoraRepository;
 import de.qucosa.webapi.Tuple;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.http.HttpStatus;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration("classpath:testContext.xml")
+@WebAppConfiguration
 public class RelationResourceTest {
 
+    @Autowired
     private FedoraRepository fedoraRepository;
+    @Autowired
     private RelationResource relationResource;
+    @Autowired
+    private WebApplicationContext wac;
+    private MockMvc mockMvc;
 
     @Before
     public void setUp() throws Exception {
-        fedoraRepository = mock(FedoraRepository.class);
-        relationResource = new RelationResource(fedoraRepository);
+        mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+    }
+
+    @After
+    public void tearDown() {
+        Mockito.reset(fedoraRepository);
     }
 
     @Test
@@ -99,10 +120,9 @@ public class RelationResourceTest {
         when(fedoraRepository.getPIDByIdentifier(anyString())).thenThrow(
                 new FedoraClientException(404, "NOT FOUND"));
 
-        ResponseEntity<?> response = relationResource.describeRelationships("not-there");
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNull("There should be no content", response.getBody());
+        mockMvc.perform(get("/relation/urn/urn:not-there")
+                .accept(MediaType.ALL))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -110,11 +130,9 @@ public class RelationResourceTest {
         when(fedoraRepository.getPIDByIdentifier(anyString())).thenThrow(
                 new FedoraClientException(401, "UNAUTHORIZED"));
 
-        ResponseEntity<?> response = relationResource.describeRelationships("not-allowed");
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull("There should be no content", response.getBody());
+        mockMvc.perform(get("/relation/urn/urn:no-auth")
+                .accept(MediaType.ALL))
+                .andExpect(status().isUnauthorized());
     }
-
 
 }

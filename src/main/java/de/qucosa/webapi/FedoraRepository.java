@@ -58,7 +58,7 @@ public class FedoraRepository {
         try {
             RiSearch riSearch = new RiSearch(query).format("csv");
             riSearchResponse = riSearch.execute(fedoraClient);
-            appendLinesFromCSVInputStream(result, riSearchResponse.getEntityInputStream(), true);
+            appendLinesFromCSVInputStream(result, riSearchResponse.getEntityInputStream());
         } finally {
             closeIfNotNull(riSearchResponse);
         }
@@ -73,7 +73,7 @@ public class FedoraRepository {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
             riSearchResponse = riSearch.execute(fedoraClient);
             result = stripPrefix("info:fedora/",
-                    readFirstLineFromCSVInputStream(riSearchResponse.getEntityInputStream(), true));
+                    readFirstLineFromCSVInputStream(riSearchResponse.getEntityInputStream()));
         } finally {
             closeIfNotNull(riSearchResponse);
         }
@@ -144,15 +144,15 @@ public class FedoraRepository {
         return s;
     }
 
-    private void appendLinesFromCSVInputStream(ArrayList<String> result, InputStream in, boolean skipHeader) throws IOException {
+    private void appendLinesFromCSVInputStream(ArrayList<String> result, InputStream in) throws IOException {
         BufferedReader b = new BufferedReader(new InputStreamReader(in));
-        if (skipHeader) b.readLine();
+        b.readLine(); // skip header
         while (b.ready()) result.add(b.readLine());
     }
 
-    private String readFirstLineFromCSVInputStream(InputStream in, boolean skipHeader) throws IOException {
+    private String readFirstLineFromCSVInputStream(InputStream in) throws IOException {
         BufferedReader b = new BufferedReader(new InputStreamReader(in));
-        if (skipHeader) b.readLine();
+        b.readLine(); // skip header
         return b.readLine();
     }
 

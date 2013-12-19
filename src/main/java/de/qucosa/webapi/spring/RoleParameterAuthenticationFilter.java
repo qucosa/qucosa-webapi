@@ -31,7 +31,7 @@ import javax.servlet.ServletResponse;
 import java.io.IOException;
 
 @Component
-public class RoleParameterAuthenticationFilter extends GenericFilterBean {
+class RoleParameterAuthenticationFilter extends GenericFilterBean {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {

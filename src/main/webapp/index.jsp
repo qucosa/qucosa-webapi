@@ -25,6 +25,7 @@
 
 <h2>General information</h2>
 
+<p>
 <ul>
     <li>The webapi module works on HTTP requests like GET, POST, UPDATE or DELETE (there are some more).</li>
     <li>The GET request could be handled by web browsers over links. All other kinds of requests could only performed
@@ -32,9 +33,9 @@
     </li>
 </ul>
 
-<p/>
-
 <h2>Document:</h2>
+
+<p>
 
 <h3>get usage (works with web browsers and rest clients):</h3>
 <ul>
@@ -47,29 +48,27 @@
     </li>
 </ul>
 
-<p/>
+<p>
 
 <h3>post usage (only with rest client):</h3>
 <ul>
     <li>TODO</li>
 </ul>
 
-<p/>
+<p>
 
 <h3>put usage (only with rest client):</h3>
 <ul>
     <li>TODO</li>
 </ul>
 
-<p/>
+<p>
 
 <h3>delete usage (only with rest client):</h3>
 <ul>
     <li>DELETE /webapi/document/37<br/>delete a specific document<br/>
         <strong>works only with test data</strong></li>
 </ul>
-
-<p/>
 
 <h2>Searching:</h2>
 
@@ -84,7 +83,6 @@
     <li>language</li>
     <li>searchtype</li>
 </ul>
-</p>
 
 <p>
     Valid values for parameter <strong>field&lt;number&gt;</strong>:
@@ -93,34 +91,23 @@
     <li>title</li>
     <li>... supported values for lucence searching ...</li>
 </ul>
-</p>
-
-<p/>
 
 <p>
     Valid values for parameter <strong>query&lt;number&gt;</strong>:
 <ul>
     <li>any utf-8 encoded input value</li>
 </ul>
-</p>
-
-<p/>
 
 <p>
-    Valid values for paraemter <strong>boolean&lt;number&gt;</strong>:
+    Valid values for parameter <strong>boolean&lt;number&gt;</strong>:
 <ul>
     <li>AND</li>
     <li>OR</li>
     <li>NOT ( &lt;expression&gt; and not &lt;expression&gt;)</li>
 </ul>
-</p>
 
-<p/>
 
 <p>&lt;number&gt; are numbers from 0 to infinity</p>
-
-
-<p/>
 
 <p>
     Valid values for parameter <strong>language</strong>strong:
@@ -128,17 +115,12 @@
     <li>Zend_Language values or what ever lucence searching used ;)</li>
 </ul>
 
-<p/>
-
 <p>
     Valid values for parameter <strong>searchtype</strong>:
 <ul>
     <li>empty</li>
     <li>truncated - added to every search query a asteriks in front and end of term</li>
 </ul>
-</p>
-
-<p/>
 
 <p>Examples:
 <ul>
@@ -146,15 +128,11 @@
         /webapi/search?field0=title&query0=gegen&searchtype=truncated</a></li>
     <li><a href="/webapi/search?field0=author&query0=oliver">GET /webapi/search?field0=author&query0=oliver</a></li>
 </ul>
-</p>
-
-<p/>
 
 <h3>post, put und delete usage:</h3>
 
 <h4 style="color: red;">Will never be supported.</h4>
 
-<p/>
 
 </body>
 </html>
