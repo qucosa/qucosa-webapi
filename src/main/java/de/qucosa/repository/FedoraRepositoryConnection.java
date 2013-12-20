@@ -65,18 +65,21 @@ public class FedoraRepositoryConnection {
     }
 
     public String getPIDByIdentifier(String identifier) throws FedoraClientException, IOException {
-        String result = null;
         String query = "select $pid where { $pid <dc:identifier> '" + identifier + "' }";
         RiSearchResponse riSearchResponse = null;
         try {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
             riSearchResponse = riSearch.execute(fedoraClient);
-            result = stripPrefix("info:fedora/",
-                    readFirstLineFromCSVInputStream(riSearchResponse.getEntityInputStream()));
+            if (riSearchResponse.getEntityInputStream() != null) {
+                String line = readFirstLineFromCSVInputStream(riSearchResponse.getEntityInputStream());
+                if (line != null) {
+                    return stripPrefix("info:fedora/", line);
+                }
+            }
+            throw new FedoraClientException(404, "No object with dc:identifier '" + identifier + "' found.");
         } finally {
             closeIfNotNull(riSearchResponse);
         }
-        return result;
     }
 
     public List<Tuple<String>> getPredecessorPIDs(String pid, String relationPredicate) throws FedoraClientException, IOException {
