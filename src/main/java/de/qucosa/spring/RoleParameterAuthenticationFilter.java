@@ -15,10 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi.spring;
+package de.qucosa.spring;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -39,13 +38,10 @@ class RoleParameterAuthenticationFilter extends GenericFilterBean {
         if (role != null) {
             SecurityContext sctx = SecurityContextHolder.getContext();
             if (sctx.getAuthentication() == null) {
-                sctx.setAuthentication(createAuthentication(role));
+                sctx.setAuthentication(new UsernamePasswordAuthenticationToken(role, role));
             }
         }
         chain.doFilter(request, response);
     }
 
-    private Authentication createAuthentication(String role) {
-        return new UsernamePasswordAuthenticationToken(role, role);
-    }
 }

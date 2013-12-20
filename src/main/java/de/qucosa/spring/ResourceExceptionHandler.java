@@ -15,24 +15,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi.spring;
+package de.qucosa.spring;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @ControllerAdvice
-public class ResourceExceptionHandler {
+class ResourceExceptionHandler {
+
+    private static Log log = LogFactory.getLog(ResourceExceptionHandler.class);
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity generalExceptionHandler() {
+    public ResponseEntity generalExceptionHandler(Exception ex) {
+        log.error(ex);
         return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(FedoraClientException.class)
     public ResponseEntity fedoraClientExceptionHandler(FedoraClientException fe) {
+        log.warn(fe);
         return new ResponseEntity(HttpStatus.valueOf(fe.getStatus()));
     }
 

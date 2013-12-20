@@ -15,22 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi;
+package de.qucosa.repository;
 
 import com.yourmediashelf.fedora.client.FedoraCredentials;
-
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-public class FedoraAuthorityDetails {
-
-    final private Map<String, FedoraCredentials> authorityCredentialsMap;
-
-    public FedoraAuthorityDetails(Map<String, FedoraCredentials> authorityCredentialsMap) {
-        this.authorityCredentialsMap = authorityCredentialsMap;
-    }
-
-    public Map<String, FedoraCredentials> getAuthorityCredentialsMap() {
-        return Collections.unmodifiableMap(authorityCredentialsMap);
+class FedoraAuthorityCredentialsMap extends HashMap<String, FedoraCredentials> {
+    public FedoraAuthorityCredentialsMap(Map<String, FedoraCredentials> m) {
+        super(m);
     }
 }

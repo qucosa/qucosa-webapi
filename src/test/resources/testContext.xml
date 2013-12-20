@@ -21,11 +21,11 @@
        xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <context:component-scan base-package="de.qucosa.webapi.spring"/>
+    <context:component-scan base-package="de.qucosa.spring"/>
     <mvc:annotation-driven/>
 
     <bean id="fedoraRepository" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="de.qucosa.webapi.FedoraRepository"/>
+        <constructor-arg value="de.qucosa.repository.FedoraRepositoryConnection"/>
     </bean>
 
     <bean id="documentResource" class="de.qucosa.webapi.v1.DocumentResource">

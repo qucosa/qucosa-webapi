@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi;
+package de.qucosa.repository;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
@@ -23,9 +23,7 @@ import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
 import com.yourmediashelf.fedora.client.request.RiSearch;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Repository;
+import de.qucosa.util.Tuple;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,17 +32,13 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-@Repository
-@Scope("request")
-public class FedoraRepository {
-
-    private final FedoraClient fedoraClient;
+public class FedoraRepositoryConnection {
 
     public static final String RELATION_DERIVATIVE = "isDerivationOf";
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
+    private final FedoraClient fedoraClient;
 
-    @Autowired
-    public FedoraRepository(FedoraClient fedoraClient) {
+    public FedoraRepositoryConnection(FedoraClient fedoraClient) {
         this.fedoraClient = fedoraClient;
     }
 
@@ -66,18 +60,21 @@ public class FedoraRepository {
     }
 
     public String getPIDByIdentifier(String identifier) throws FedoraClientException, IOException {
-        String result = null;
-        String query =  "select $pid where { $pid <dc:identifier> '" + identifier + "' }";
+        String query = "select $pid where { $pid <dc:identifier> '" + identifier + "' }";
         RiSearchResponse riSearchResponse = null;
         try {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
             riSearchResponse = riSearch.execute(fedoraClient);
-            result = stripPrefix("info:fedora/",
-                    readFirstLineFromCSVInputStream(riSearchResponse.getEntityInputStream()));
+            if (riSearchResponse.getEntityInputStream() != null) {
+                String line = readFirstLineFromCSVInputStream(riSearchResponse.getEntityInputStream());
+                if (line != null) {
+                    return stripPrefix("info:fedora/", line);
+                }
+            }
+            throw new FedoraClientException(404, "No object with dc:identifier '" + identifier + "' found.");
         } finally {
             closeIfNotNull(riSearchResponse);
         }
-        return result;
     }
 
     public List<Tuple<String>> getPredecessorPIDs(String pid, String relationPredicate) throws FedoraClientException, IOException {
@@ -90,14 +87,7 @@ public class FedoraRepository {
         try {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
             riSearchResponse = riSearch.execute(fedoraClient);
-
-            BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
-            b.readLine();
-            while (b.ready()) {
-                String[] parts = b.readLine().split(",");
-                parts[0] = stripPrefix("info:fedora/qucosa:", parts[0]);
-                result.add(new Tuple<>(parts));
-            }
+            readTuplesFromCsvInputStream(result, riSearchResponse.getEntityInputStream());
         } finally {
             closeIfNotNull(riSearchResponse);
         }
@@ -119,14 +109,7 @@ public class FedoraRepository {
         try {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
             riSearchResponse = riSearch.execute(fedoraClient);
-
-            BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
-            b.readLine();
-            while (b.ready()) {
-                String[] parts = b.readLine().split(",");
-                parts[0] = stripPrefix("info:fedora/qucosa:", parts[0]);
-                result.add(new Tuple<>(parts));
-            }
+            readTuplesFromCsvInputStream(result, riSearchResponse.getEntityInputStream());
         } finally {
             closeIfNotNull(riSearchResponse);
         }
@@ -154,6 +137,16 @@ public class FedoraRepository {
         BufferedReader b = new BufferedReader(new InputStreamReader(in));
         b.readLine(); // skip header
         return b.readLine();
+    }
+
+    private void readTuplesFromCsvInputStream(ArrayList<Tuple<String>> result, InputStream in) throws IOException {
+        BufferedReader b = new BufferedReader(new InputStreamReader(in));
+        b.readLine();
+        while (b.ready()) {
+            String[] parts = b.readLine().split(",");
+            parts[0] = stripPrefix("info:fedora/qucosa:", parts[0]);
+            result.add(new Tuple<>(parts));
+        }
     }
 
 }

@@ -18,7 +18,7 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.webapi.FedoraRepository;
+import de.qucosa.repository.FedoraRepositoryConnection;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.After;
@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class DocumentResourceTest {
 
     @Autowired
-    private FedoraRepository fedoraRepository;
+    private FedoraRepositoryConnection fedoraRepositoryConnection;
     @Autowired
     private DocumentResource documentResource;
     @Autowired
@@ -76,13 +76,13 @@ public class DocumentResourceTest {
 
     @After
     public void tearDown() {
-        Mockito.reset(fedoraRepository);
+        Mockito.reset(fedoraRepositoryConnection);
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void returnsOpus2XML() throws Exception {
-        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
+        when(fedoraRepositoryConnection.getPIDsByPattern(anyString())).thenReturn(anyList());
 
         String response = documentResource.listAll().getBody();
 
@@ -92,7 +92,7 @@ public class DocumentResourceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void returnsEmptyDocumentList() throws Exception {
-        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
+        when(fedoraRepositoryConnection.getPIDsByPattern(anyString())).thenReturn(anyList());
 
         String response = documentResource.listAll().getBody();
 
@@ -103,7 +103,7 @@ public class DocumentResourceTest {
     public void putsCorrectXLinkToDocument() throws Exception {
         ArrayList<String> documentList = new ArrayList<>();
         documentList.add("qucosa:1234");
-        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(documentList);
+        when(fedoraRepositoryConnection.getPIDsByPattern(anyString())).thenReturn(documentList);
 
         String response = documentResource.listAll().getBody();
 
@@ -114,7 +114,7 @@ public class DocumentResourceTest {
 
     @Test
     public void returns404WithNoContent() throws Exception {
-        when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
+        when(fedoraRepositoryConnection.getDatastreamContent(anyString(), anyString())).thenThrow(
                 new FedoraClientException(404, "NOT FOUND"));
 
         mockMvc.perform(get("/document/no-valid-id")
@@ -124,7 +124,7 @@ public class DocumentResourceTest {
 
     @Test
     public void returns401WhenNotAuthorized() throws Exception {
-        when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
+        when(fedoraRepositoryConnection.getDatastreamContent(anyString(), anyString())).thenThrow(
                 new FedoraClientException(401, "UNAUTHORIZED"));
 
         mockMvc.perform(get("/document/no-auth")
