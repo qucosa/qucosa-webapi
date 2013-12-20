@@ -24,8 +24,6 @@ import com.yourmediashelf.fedora.client.request.RiSearch;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
 import de.qucosa.util.Tuple;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -36,15 +34,12 @@ import java.util.List;
 
 public class FedoraRepositoryConnection {
 
-    private static final Log log = LogFactory.getLog(FedoraRepositoryConnection.class);
-
     public static final String RELATION_DERIVATIVE = "isDerivationOf";
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
     private final FedoraClient fedoraClient;
 
     public FedoraRepositoryConnection(FedoraClient fedoraClient) {
         this.fedoraClient = fedoraClient;
-        log.info("Connection created");
     }
 
     public List<String> getPIDsByPattern(String regexp) throws FedoraClientException, IOException {
@@ -92,14 +87,7 @@ public class FedoraRepositoryConnection {
         try {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
             riSearchResponse = riSearch.execute(fedoraClient);
-
-            BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
-            b.readLine();
-            while (b.ready()) {
-                String[] parts = b.readLine().split(",");
-                parts[0] = stripPrefix("info:fedora/qucosa:", parts[0]);
-                result.add(new Tuple<>(parts));
-            }
+            readTuplesFromCsvInputStream(result, riSearchResponse.getEntityInputStream());
         } finally {
             closeIfNotNull(riSearchResponse);
         }
@@ -121,14 +109,7 @@ public class FedoraRepositoryConnection {
         try {
             RiSearch riSearch = new RiSearch(query).format("csv").distinct(true);
             riSearchResponse = riSearch.execute(fedoraClient);
-
-            BufferedReader b = new BufferedReader(new InputStreamReader(riSearchResponse.getEntityInputStream()));
-            b.readLine();
-            while (b.ready()) {
-                String[] parts = b.readLine().split(",");
-                parts[0] = stripPrefix("info:fedora/qucosa:", parts[0]);
-                result.add(new Tuple<>(parts));
-            }
+            readTuplesFromCsvInputStream(result, riSearchResponse.getEntityInputStream());
         } finally {
             closeIfNotNull(riSearchResponse);
         }
@@ -156,6 +137,16 @@ public class FedoraRepositoryConnection {
         BufferedReader b = new BufferedReader(new InputStreamReader(in));
         b.readLine(); // skip header
         return b.readLine();
+    }
+
+    private void readTuplesFromCsvInputStream(ArrayList<Tuple<String>> result, InputStream in) throws IOException {
+        BufferedReader b = new BufferedReader(new InputStreamReader(in));
+        b.readLine();
+        while (b.ready()) {
+            String[] parts = b.readLine().split(",");
+            parts[0] = stripPrefix("info:fedora/qucosa:", parts[0]);
+            result.add(new Tuple<>(parts));
+        }
     }
 
 }

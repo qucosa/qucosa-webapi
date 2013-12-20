@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.xml.stream.XMLOutputFactory;
@@ -49,7 +50,7 @@ class RelationResource {
         this.fedoraRepositoryConnection = fedoraRepositoryConnection;
     }
 
-    @RequestMapping(value = "/relation/urn/{URN}")
+    @RequestMapping(value = "/relation/urn/{URN}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> describeRelationships(@PathVariable String URN) throws XMLStreamException, IOException, FedoraClientException {
         String pid = fedoraRepositoryConnection.getPIDByIdentifier(URN);
