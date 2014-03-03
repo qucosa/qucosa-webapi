@@ -1,0 +1,19 @@
+{
+    "properties": {
+        "PID": {
+            "type": "string",
+            "store": true,
+            "index": "not_analyzed"
+        },
+        "OBJ_STATE": {
+            "type": "string",
+            "store": true,
+            "index": "not_analyzed"
+        },
+        "PUB_TYPE": {
+            "type": "string",
+            "store": true,
+            "index": "not_analyzed"
+        }
+    }
+}
