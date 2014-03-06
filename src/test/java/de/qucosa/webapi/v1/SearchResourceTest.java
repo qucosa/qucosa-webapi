@@ -83,7 +83,7 @@ public class SearchResourceTest {
                 .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("1"))
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@number").string("0"))
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@docid").string("10044"))
-                .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@xlink:href", NS).string("http://localhost:80/documents/10044"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@xlink:href", NS).string("http://localhost:80/document/10044"))
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@title").string("A Connection between the Star Problem and the Finite Power Property in Trace Monoids"))
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@author").string("Daniel Kirsten"))
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@year").string(""))
