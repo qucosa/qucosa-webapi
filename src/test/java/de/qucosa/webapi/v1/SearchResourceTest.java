@@ -138,4 +138,11 @@ public class SearchResourceTest {
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@docid").string("10305"));
     }
 
+    @Test
+    public void skipsDocumentsWithIndexError() throws Exception {
+        mockMvc.perform(get("/search?field0=docid&query0=error"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("0"));
+    }
+
 }

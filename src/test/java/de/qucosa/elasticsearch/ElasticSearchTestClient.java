@@ -56,6 +56,8 @@ public class ElasticSearchTestClient {
                         .setSource(getJson("/index_document_10033.json")))
                 .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:10305")
                         .setSource(getJson("/index_document_10305.json")))
+                .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:error")
+                        .setSource(getJson("/index_document_error.json")))
                 .setRefresh(true)
                 .execute()
                 .actionGet();

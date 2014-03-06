@@ -171,6 +171,7 @@ public class SearchResource {
                 default:
             }
         }
+        result.add(termQuery("IDX_ERROR", false));
         return result;
     }
 
