@@ -17,6 +17,7 @@
 
 package de.qucosa.webapi.v1;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -26,6 +27,8 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,6 +54,8 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
 @Controller
 @RequestMapping(produces = {"application/xml; charset=UTF-8", "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
 public class SearchResource {
+
+    private final Logger log = LoggerFactory.getLogger(SearchResource.class);
 
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
@@ -100,15 +105,19 @@ public class SearchResource {
                     .setSearchType(SearchType.QUERY_AND_FETCH)
                     .setQuery(bqb)
                     .addFields("PID", "PUB_TITLE", "PUB_AUTHOR", "PUB_DATE", "PUB_TYPE");
+            log.debug("Issue query: " + searchRequestBuilder.toString());
             SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
             SearchHits searchHits = searchResponse.getHits();
 
             return resultlist(searchHits);
 
+        } catch (ElasticsearchException esx) {
+            log.error("ElasticSearch specific error: " + esx.getMessage());
+            return errorResponse("Internal Server Error.", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception ex) {
+            log.error(ex.getMessage());
             return errorResponse("Internal Server Error.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     private List<QueryBuilder> getFedoraQueryBuilders(Map<String, String> queries) throws Exception {

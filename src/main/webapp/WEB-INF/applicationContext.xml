@@ -17,27 +17,39 @@
   -->
 
 <!--suppress SpringPlaceholdersInspection -->
-<bean:beans xmlns="http://www.springframework.org/schema/security"
-            xmlns:bean="http://www.springframework.org/schema/beans"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xmlns:context="http://www.springframework.org/schema/context"
-            xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-    <context:property-placeholder system-properties-mode="ENVIRONMENT"/>
     <context:component-scan base-package="de.qucosa"/>
 
-    <bean:import resource="default-fedora-authority-details.xml"/>
-    <bean:import resource="file:${QUCOSA_HOME}/config/*.xml"/>
+    <bean id="appProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="singleton" value="true"/>
+        <property name="ignoreResourceNotFound" value="true"/>
+        <property name="locations">
+            <list>
+                <value>classpath:*.properties</value>
+                <value>file:${QUCOSA_HOME}/config/*.properties</value>
+            </list>
+        </property>
+    </bean>
 
-    <http pattern="/index.jsp" security="none"/>
+    <context:property-placeholder properties-ref="appProperties" ignore-unresolvable="true" ignore-resource-not-found="true"/>
 
-    <http create-session="stateless" access-decision-manager-ref="accessDecisionManager">
-        <intercept-url pattern="/**" access="ROLE_USER" method="GET"/>
-        <intercept-url pattern="/**" access="ROLE_ADMIN" method="PUT"/>
-        <intercept-url pattern="/**" access="ROLE_ADMIN" method="POST"/>
-        <intercept-url pattern="/**" access="ROLE_ADMIN" method="DELETE"/>
-        <custom-filter position="FORM_LOGIN_FILTER" ref="roleParameterAuthenticationFilter"/>
-        <http-basic/>
-    </http>
+    <import resource="default-fedora-authority-details.xml"/>
+    <import resource="file:${QUCOSA_HOME}/config/*.xml"/>
 
-</bean:beans>
+    <security:http pattern="/index.jsp" security="none"/>
+
+    <security:http create-session="stateless" access-decision-manager-ref="accessDecisionManager">
+        <security:intercept-url pattern="/**" access="ROLE_USER" method="GET"/>
+        <security:intercept-url pattern="/**" access="ROLE_ADMIN" method="PUT"/>
+        <security:intercept-url pattern="/**" access="ROLE_ADMIN" method="POST"/>
+        <security:intercept-url pattern="/**" access="ROLE_ADMIN" method="DELETE"/>
+        <security:custom-filter position="FORM_LOGIN_FILTER" ref="roleParameterAuthenticationFilter"/>
+        <security:http-basic/>
+    </security:http>
+
+</beans>
