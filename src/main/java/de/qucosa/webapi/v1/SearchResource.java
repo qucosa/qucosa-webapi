@@ -26,6 +26,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.SearchHits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,11 +56,10 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
 @RequestMapping(produces = {"application/xml; charset=UTF-8", "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
 public class SearchResource {
 
-    private final Logger log = LoggerFactory.getLogger(SearchResource.class);
-
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
     private static final Pattern REGEXP_DATE_PATTERN = Pattern.compile("^\\[(\\d{8})\\sTO\\s(\\d{8})\\]$");
+    private final Logger log = LoggerFactory.getLogger(SearchResource.class);
     private final Client elasticSearchClient;
     private final XMLOutputFactory xmlOutputFactory;
 
@@ -179,6 +179,7 @@ public class SearchResource {
     }
 
     private String mapToQucosaDate(String date) throws ParseException {
+        if (date.isEmpty()) return "";
         return new SimpleDateFormat("yyyyMMdd").format(new SimpleDateFormat("yyyy-MM-dd").parse(date));
     }
 
@@ -224,15 +225,15 @@ public class SearchResource {
                         w.writeStartElement("Result");
                         w.writeAttribute("number", String.valueOf(i++));
 
-                        String docid = mapToQucosaId(head(hit.field("PID").values()));
+                        String docid = mapToQucosaId(head(values(hit.field("PID"))));
 
                         w.writeAttribute("docid", docid);
                         w.writeAttribute(XLINK_NAMESPACE, "href", getHrefLink(docid));
-                        w.writeAttribute("title", head(hit.field("PUB_TITLE").values()));
-                        w.writeAttribute("author", join(hit.field("PUB_AUTHOR").values()));
+                        w.writeAttribute("title", head(values(hit.field("PUB_TITLE"))));
+                        w.writeAttribute("author", join(values(hit.field("PUB_AUTHOR"))));
                         w.writeAttribute("year", "");
-                        w.writeAttribute("completeddate", mapToQucosaDate(head(hit.field("PUB_DATE").values())));
-                        w.writeAttribute("doctype", head(hit.field("PUB_TYPE").values()));
+                        w.writeAttribute("completeddate", mapToQucosaDate(head(values(hit.field("PUB_DATE")))));
+                        w.writeAttribute("doctype", head(values(hit.field("PUB_TYPE"))));
                         w.writeAttribute("issue", "");
                         w.writeEndElement();
                     }
@@ -248,11 +249,16 @@ public class SearchResource {
         return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
     }
 
+    private List values(SearchHitField searchHitField) {
+        return (searchHitField == null) ? new LinkedList() : searchHitField.values();
+    }
+
     private String head(List l) {
-        return (l.isEmpty()) ? "" : (String) l.get(0);
+        return ((l == null) || (l.isEmpty())) ? "" : (String) l.get(0);
     }
 
     private String join(List l) {
+        if (l == null) return "";
         StringBuilder sb = new StringBuilder();
         Iterator it = l.iterator();
         while (it.hasNext()) {

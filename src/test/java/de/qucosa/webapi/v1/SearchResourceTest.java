@@ -131,4 +131,11 @@ public class SearchResourceTest {
                 .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("2"));
     }
 
+    @Test
+    public void handlesDocumentsWhereSelectedFieldsAreMissing() throws Exception {
+        mockMvc.perform(get("/search?field0=docid&query0=10305"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result/@docid").string("10305"));
+    }
+
 }

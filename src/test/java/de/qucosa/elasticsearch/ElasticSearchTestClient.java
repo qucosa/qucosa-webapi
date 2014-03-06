@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.spring;
+package de.qucosa.elasticsearch;
 
 import org.apache.commons.io.IOUtils;
 import org.elasticsearch.client.Client;
@@ -54,6 +54,8 @@ public class ElasticSearchTestClient {
                         .setSource(getJson("/index_document_10044.json")))
                 .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:10033")
                         .setSource(getJson("/index_document_10033.json")))
+                .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:10305")
+                        .setSource(getJson("/index_document_10305.json")))
                 .setRefresh(true)
                 .execute()
                 .actionGet();
