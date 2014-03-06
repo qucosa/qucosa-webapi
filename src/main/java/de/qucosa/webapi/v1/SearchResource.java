@@ -297,7 +297,8 @@ public class SearchResource {
                 .append(httpServletRequest.getServerName())
                 .append(":")
                 .append(httpServletRequest.getServerPort())
-                .append("/documents/")
+                .append(httpServletRequest.getContextPath())
+                .append("/document/")
                 .append(pid);
         return sb.toString();
     }
