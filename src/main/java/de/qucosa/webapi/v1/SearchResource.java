@@ -131,9 +131,6 @@ public class SearchResource {
                 case "serverstate":
                     result.add(termQuery("OBJ_STATE", mapToFedoraState(q)));
                     break;
-                case "securitylist":
-                    result.add(termQuery("OBJ_OWNER_ID", q));
-                    break;
                 case "completeddate":
                     Matcher matcher = REGEXP_DATE_PATTERN.matcher(q);
                     if (matcher.matches()) {
@@ -171,6 +168,7 @@ public class SearchResource {
                 default:
             }
         }
+        result.add(termQuery("OBJ_OWNER_ID", "qucosa"));
         result.add(termQuery("IDX_ERROR", false));
         return result;
     }
