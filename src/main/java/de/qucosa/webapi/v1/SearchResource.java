@@ -22,6 +22,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -47,6 +48,7 @@ import java.io.StringWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -102,14 +104,13 @@ public class SearchResource {
             SearchRequestBuilder searchRequestBuilder = elasticSearchClient
                     .prepareSearch("qucosa")
                     .setTypes("documents")
-                    .setSearchType(SearchType.QUERY_AND_FETCH)
+                    .setScroll(new TimeValue(60, TimeUnit.SECONDS))
+                    .setSize(100)
                     .setQuery(bqb)
                     .addFields("PID", "PUB_TITLE", "PUB_AUTHOR", "PUB_DATE", "PUB_TYPE");
             log.debug("Issue query: " + searchRequestBuilder.toString());
             SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
-            SearchHits searchHits = searchResponse.getHits();
-
-            return resultlist(searchHits);
+            return scrollAndBuildResultList(searchResponse);
 
         } catch (ElasticsearchException esx) {
             log.error("ElasticSearch specific error: " + esx.getMessage());
@@ -203,12 +204,13 @@ public class SearchResource {
         return id.substring("qucosa:".length());
     }
 
-    private ResponseEntity<String> resultlist(SearchHits searchHits) throws XMLStreamException, ParseException {
+    private ResponseEntity<String> scrollAndBuildResultList(SearchResponse searchResponse) throws XMLStreamException, ParseException {
         StringWriter sw = new StringWriter();
         XMLStreamWriter w = xmlOutputFactory.createXMLStreamWriter(sw);
 
-        w.writeStartDocument("UTF-8", "1.0");
+        SearchHits searchHits = searchResponse.getHits();
 
+        w.writeStartDocument("UTF-8", "1.0");
         w.writeStartElement("Opus");
         {
             w.writeStartElement("SearchResult");
@@ -218,25 +220,20 @@ public class SearchResource {
                 w.writeEndElement();
                 w.writeStartElement("ResultList");
                 w.writeNamespace(XLINK_NAMESPACE_PREFIX, XLINK_NAMESPACE);
-                {
-                    int i = 0;
-                    for (SearchHit hit : searchHits) {
-                        w.writeStartElement("Result");
-                        w.writeAttribute("number", String.valueOf(i++));
 
-                        String docid = mapToQucosaId(head(values(hit.field("PID"))));
-
-                        w.writeAttribute("docid", docid);
-                        w.writeAttribute(XLINK_NAMESPACE, "href", getHrefLink(docid));
-                        w.writeAttribute("title", head(values(hit.field("PUB_TITLE"))));
-                        w.writeAttribute("author", join(values(hit.field("PUB_AUTHOR"))));
-                        w.writeAttribute("year", "");
-                        w.writeAttribute("completeddate", mapToQucosaDate(head(values(hit.field("PUB_DATE")))));
-                        w.writeAttribute("doctype", head(values(hit.field("PUB_TYPE"))));
-                        w.writeAttribute("issue", "");
-                        w.writeEndElement();
+                SearchResponse scrollResponse = searchResponse;
+                int hitcount = 0;
+                while (true) {
+                    hitcount = writeResultElements(w, searchHits, hitcount);
+                    scrollResponse = elasticSearchClient.prepareSearchScroll(scrollResponse.getScrollId())
+                            .setScroll(new TimeValue(60, TimeUnit.SECONDS)).execute().actionGet();
+                    searchHits = scrollResponse.getHits();
+                    if (searchHits.getHits().length == 0) {
+                        log.debug("Stop scrolling at hitcount: {}", hitcount);
+                        break;
                     }
                 }
+
                 w.writeEndElement();
             }
             w.writeEndElement();
@@ -246,6 +243,27 @@ public class SearchResource {
         w.flush();
 
         return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
+    }
+
+    private int writeResultElements(XMLStreamWriter w, SearchHits searchHits, int starthitcount) throws XMLStreamException, ParseException {
+        int i = starthitcount;
+        for (SearchHit hit : searchHits) {
+            w.writeStartElement("Result");
+            w.writeAttribute("number", String.valueOf(i++));
+
+            String docid = mapToQucosaId(head(values(hit.field("PID"))));
+
+            w.writeAttribute("docid", docid);
+            w.writeAttribute(XLINK_NAMESPACE, "href", getHrefLink(docid));
+            w.writeAttribute("title", head(values(hit.field("PUB_TITLE"))));
+            w.writeAttribute("author", join(values(hit.field("PUB_AUTHOR"))));
+            w.writeAttribute("year", "");
+            w.writeAttribute("completeddate", mapToQucosaDate(head(values(hit.field("PUB_DATE")))));
+            w.writeAttribute("doctype", head(values(hit.field("PUB_TYPE"))));
+            w.writeAttribute("issue", "");
+            w.writeEndElement();
+        }
+        return i;
     }
 
     private List values(SearchHitField searchHitField) {
