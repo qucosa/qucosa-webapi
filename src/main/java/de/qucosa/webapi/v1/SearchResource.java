@@ -20,7 +20,6 @@ package de.qucosa.webapi.v1;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -126,6 +125,15 @@ public class SearchResource {
         for (String k : queries.keySet()) {
             String q = queries.get(k);
             switch (k) {
+                case "defaultsearchfield":
+                    result.add(queryString(q)
+                            .field("PUB_ABSTRACT")
+                            .field("PUB_AUTHOR")
+                            .field("PUB_ORIGINATOR")
+                            .field("PUB_TAG")
+                            .field("PUB_TITLE")
+                            .field("PUB_TYPE"));
+                    break;
                 case "docid":
                     result.add(termQuery("PID", mapToFedoraId(q)));
                     break;

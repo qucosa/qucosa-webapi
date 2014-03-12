@@ -145,4 +145,11 @@ public class SearchResourceTest {
                 .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("0"));
     }
 
+    @Test
+    public void findByDefaultSearchField() throws Exception {
+        mockMvc.perform(get("/search?field0=defaultsearchfield&query0=Star Problem"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("1"));
+    }
+
 }
