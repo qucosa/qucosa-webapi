@@ -28,6 +28,9 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +80,7 @@ public class SearchResource {
     @ResponseBody
     public ResponseEntity<String> search(@RequestParam Map<String, String> requestParameterMap) throws Exception {
         Map<String, String> queries = new HashMap<>();
+        Map<String, String> orderby = new HashMap<>();
 
         if (requestParameterMap.isEmpty()) {
             return errorResponse("Bad search request.", HttpStatus.BAD_REQUEST);
@@ -87,11 +91,19 @@ public class SearchResource {
                 if (key.startsWith("query")) {
                     String num = key.substring("query".length());
                     String fieldname = "field" + num;
-                    if (!requestParameterMap.containsKey("field" + num)) {
+                    if (!requestParameterMap.containsKey(fieldname)) {
                         return errorResponse("No fieldname for query argument " + num + ".", HttpStatus.BAD_REQUEST);
                     }
                     String queryname = "query" + num;
                     queries.put(requestParameterMap.get(fieldname), requestParameterMap.get(queryname));
+                } else if (key.startsWith("orderby")) {
+                    String num = key.substring("orderby".length());
+                    String orderargument = "orderhow" + num;
+                    if (!requestParameterMap.containsKey(orderargument)) {
+                        return errorResponse("No sort order argument for order query " + num + ".", HttpStatus.BAD_REQUEST);
+                    }
+                    String fieldname = "orderby" + num;
+                    orderby.put(requestParameterMap.get(fieldname), requestParameterMap.get(orderargument));
                 }
             }
 
@@ -100,6 +112,7 @@ public class SearchResource {
             for (QueryBuilder qb : queryBuilders) {
                 bqb.must(qb);
             }
+
             SearchRequestBuilder searchRequestBuilder = elasticSearchClient
                     .prepareSearch("qucosa")
                     .setTypes("documents")
@@ -107,6 +120,12 @@ public class SearchResource {
                     .setSize(100)
                     .setQuery(bqb)
                     .addFields("PID", "PUB_TITLE", "PUB_AUTHOR", "PUB_DATE", "PUB_TYPE");
+
+            List<SortBuilder> sortBuilders = getFedoraSortBuilders(orderby);
+            for (SortBuilder sb : sortBuilders) {
+                searchRequestBuilder.addSort(sb);
+            }
+
             log.debug("Issue query: " + searchRequestBuilder.toString());
             SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
             return scrollAndBuildResultList(searchResponse);
@@ -118,6 +137,43 @@ public class SearchResource {
             log.error(ex.getMessage());
             return errorResponse("Internal Server Error.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private List<SortBuilder> getFedoraSortBuilders(Map<String, String> sortArguments) {
+        List<SortBuilder> result = new LinkedList<>();
+        for (String fieldname : sortArguments.keySet()) {
+            SortBuilder sb = null;
+            SortOrder order = mapToSortOrder(sortArguments.get(fieldname));
+            switch (fieldname) {
+                case "docid":
+                    sb = SortBuilders.fieldSort("PID").order(order);
+                    break;
+                case "completeddate":
+                    sb = SortBuilders.fieldSort("PUB_DATE").order(order);
+                    break;
+                case "title":
+                    sb = SortBuilders.fieldSort("PUB_TITLE").order(order);
+                    break;
+                case "abstract":
+                    sb = SortBuilders.fieldSort("PUB_ABSTRACT").order(order);
+                    break;
+                case "person":
+                    sb = SortBuilders.fieldSort("PUB_SUBMITTER").order(order);
+                    break;
+                case "author":
+                    sb = SortBuilders.fieldSort("PUB_AUTHOR").order(order);
+                    break;
+                default:
+            }
+            if (sb != null) {
+                result.add(sb);
+            }
+        }
+        return result;
+    }
+
+    private SortOrder mapToSortOrder(String order) {
+        return (order.equals("desc")) ? SortOrder.DESC : SortOrder.ASC;
     }
 
     private List<QueryBuilder> getFedoraQueryBuilders(Map<String, String> queries) throws Exception {

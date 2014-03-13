@@ -70,6 +70,14 @@ public class SearchResourceTest {
     }
 
     @Test
+    public void returnsBadRequestIfSortArgumentWithoutOrder() throws Exception {
+        mockMvc.perform(get("/search?orderby0=foo"))
+                .andExpect(status().isBadRequest())
+                .andExpect(xpath("/Opus/Error/@message").string("No sort order argument for order query 0."));
+    }
+
+
+    @Test
     public void findsByDocid() throws Exception {
         mockMvc.perform(get("/search?field0=docid&query0=10044"))
                 .andExpect(status().isOk())
@@ -150,6 +158,16 @@ public class SearchResourceTest {
         mockMvc.perform(get("/search?field0=defaultsearchfield&query0=Star Problem"))
                 .andExpect(status().isOk())
                 .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("1"));
+    }
+
+    @Test
+    public void hitsOrderedByDate() throws Exception {
+        mockMvc.perform(get("/search?field0=serverstate&query0=published&orderby0=completeddate&orderhow0=desc"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("2"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@completeddate").string("20121203"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[2]/@completeddate").string("20121128"))
+        ;
     }
 
 }
