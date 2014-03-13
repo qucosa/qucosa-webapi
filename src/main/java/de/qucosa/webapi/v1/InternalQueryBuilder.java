@@ -87,6 +87,11 @@ class InternalQueryBuilder {
         return this;
     }
 
+    public InternalQueryBuilder replaceQuestionmarkQuoting() {
+        this.mappingType =  MappingType.MapToFedoraDoctype;
+        return this;
+    }
+
     private String mapToFedoraDate(String date) throws ParseException {
         return new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat("yyyyMMdd").parse(date));
     }
@@ -117,6 +122,9 @@ class InternalQueryBuilder {
             case MapToFedoraId:
                 mappedQuery = mapToFedoraId(query);
                 break;
+            case MapToFedoraDoctype:
+                mappedQuery = query.replace('?', '_');
+                break;
             default:
                 mappedQuery = query;
         }
@@ -128,7 +136,7 @@ class InternalQueryBuilder {
     }
 
     private enum MappingType {
-        NoMapping, MapToFedoraState, MapToFedoraId
+        NoMapping, MapToFedoraState, MapToFedoraId, MapToFedoraDoctype
     }
 
     QueryBuilder build() throws Exception {

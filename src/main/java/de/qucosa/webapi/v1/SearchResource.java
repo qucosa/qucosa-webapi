@@ -98,7 +98,7 @@ public class SearchResource {
                 .field("PUB_ABSTRACT", "PUB_AUTHOR", "PUB_ORIGINATOR", "PUB_TAG", "PUB_TITLE", "PUB_TYPE")
                 .stringQuery());
         queryBuilderMap.put("docid", InternalQueryBuilder.field("PID").termQuery().mapToFedoraId());
-        queryBuilderMap.put("doctype", InternalQueryBuilder.field("PUB_TYPE").termQuery());
+        queryBuilderMap.put("doctype", InternalQueryBuilder.field("PUB_TYPE").termQuery().replaceQuestionmarkQuoting());
         queryBuilderMap.put("firstlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR").matchQuery());
         queryBuilderMap.put("person", InternalQueryBuilder.field("PUB_SUBMITTER").matchQuery());
         queryBuilderMap.put("secondlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR_SUB").matchQuery());
