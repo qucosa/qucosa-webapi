@@ -51,10 +51,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 
 @Controller
 @RequestMapping(produces = {"application/xml; charset=UTF-8", "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
@@ -62,13 +60,52 @@ public class SearchResource {
 
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
-    private static final Pattern REGEXP_DATE_PATTERN = Pattern.compile("^\\[(\\d{8})\\sTO\\s(\\d{8})\\]$");
+    private static Map<String, String> searchFieldnameMap;
+    private static Map<String, SortBuilder> sortBuilderMap;
+    private static Map<String, InternalQueryBuilder> queryBuilderMap;
     private final Logger log = LoggerFactory.getLogger(SearchResource.class);
     private final Client elasticSearchClient;
     private final XMLOutputFactory xmlOutputFactory;
-
     @Autowired
     private HttpServletRequest httpServletRequest;
+
+    static {
+        searchFieldnameMap = new HashMap<>();
+        searchFieldnameMap.put("abstract", "PUB_ABSTRACT");
+        searchFieldnameMap.put("author", "PUB_AUTHOR");
+        searchFieldnameMap.put("completeddate", "PUB_DATE");
+        searchFieldnameMap.put("docid", "PID");
+        searchFieldnameMap.put("doctype", "PUB_TYPE");
+        searchFieldnameMap.put("firstlevelname", "PUB_ORIGINATOR");
+        searchFieldnameMap.put("person", "PUB_SUBMITTER");
+        searchFieldnameMap.put("secondlevelname", "PUB_ORIGINATOR_SUB");
+        searchFieldnameMap.put("serverstate", "OBJ_STATE");
+        searchFieldnameMap.put("title", "PUB_TITLE");
+
+        sortBuilderMap = new HashMap<>();
+        sortBuilderMap.put("abstract", SortBuilders.fieldSort("PUB_ABSTRACT"));
+        sortBuilderMap.put("author", SortBuilders.fieldSort("PUB_AUTHOR"));
+        sortBuilderMap.put("completeddate", SortBuilders.fieldSort("PUB_DATE"));
+        sortBuilderMap.put("docid", SortBuilders.fieldSort("PID"));
+        sortBuilderMap.put("person", SortBuilders.fieldSort("PUB_SUBMITTER"));
+        sortBuilderMap.put("title", SortBuilders.fieldSort("PUB_TITLE"));
+
+        queryBuilderMap = new HashMap<>();
+        queryBuilderMap.put("abstract", InternalQueryBuilder.field("PUB_ABSTRACT").matchQuery());
+        queryBuilderMap.put("author", InternalQueryBuilder.field("PUB_AUTHOR").matchQuery());
+        queryBuilderMap.put("completeddate", InternalQueryBuilder.field("PUB_DATE").dateRangeQuery());
+        queryBuilderMap.put("defaultsearchfield", InternalQueryBuilder
+                .field("PUB_ABSTRACT", "PUB_AUTHOR", "PUB_ORIGINATOR", "PUB_TAG", "PUB_TITLE", "PUB_TYPE")
+                .stringQuery());
+        queryBuilderMap.put("docid", InternalQueryBuilder.field("PID").termQuery().mapToFedoraId());
+        queryBuilderMap.put("doctype", InternalQueryBuilder.field("PUB_TYPE").termQuery());
+        queryBuilderMap.put("firstlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR").matchQuery());
+        queryBuilderMap.put("person", InternalQueryBuilder.field("PUB_SUBMITTER").matchQuery());
+        queryBuilderMap.put("secondlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR_SUB").matchQuery());
+        queryBuilderMap.put("serverstate", InternalQueryBuilder.field("OBJ_STATE").termQuery().mapToFedoraState());
+        queryBuilderMap.put("subject", InternalQueryBuilder.field("PUB_TAG", "PUB_TAG_DDC").multiMatchQuery());
+        queryBuilderMap.put("title", InternalQueryBuilder.field("PUB_TITLE").matchQuery());
+    }
 
     @Autowired
     public SearchResource(Client elasticSearchClient) {
@@ -79,94 +116,94 @@ public class SearchResource {
     @RequestMapping(value = "/search", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> search(@RequestParam Map<String, String> requestParameterMap) throws Exception {
-        Map<String, String> queries = new HashMap<>();
-        Map<String, String> orderby = new HashMap<>();
-
-        if (requestParameterMap.isEmpty()) {
-            return errorResponse("Bad search request.", HttpStatus.BAD_REQUEST);
-        }
-
         try {
-            for (String key : requestParameterMap.keySet()) {
-                if (key.startsWith("query")) {
-                    String num = key.substring("query".length());
-                    String fieldname = "field" + num;
-                    if (!requestParameterMap.containsKey(fieldname)) {
-                        return errorResponse("No fieldname for query argument " + num + ".", HttpStatus.BAD_REQUEST);
-                    }
-                    String queryname = "query" + num;
-                    queries.put(requestParameterMap.get(fieldname), requestParameterMap.get(queryname));
-                } else if (key.startsWith("orderby")) {
-                    String num = key.substring("orderby".length());
-                    String orderargument = "orderhow" + num;
-                    if (!requestParameterMap.containsKey(orderargument)) {
-                        return errorResponse("No sort order argument for order query " + num + ".", HttpStatus.BAD_REQUEST);
-                    }
-                    String fieldname = "orderby" + num;
-                    orderby.put(requestParameterMap.get(fieldname), requestParameterMap.get(orderargument));
-                }
-            }
+            Map<String, String> queries = new HashMap<>();
+            Map<String, String> orderby = new HashMap<>();
 
-            List<QueryBuilder> queryBuilders = getFedoraQueryBuilders(queries);
-            BoolQueryBuilder bqb = QueryBuilders.boolQuery();
-            for (QueryBuilder qb : queryBuilders) {
-                bqb.must(qb);
-            }
-
+            assertParametersPresent(requestParameterMap);
+            extractQueriesAndSortParameters(requestParameterMap, queries, orderby);
+            BoolQueryBuilder bqb = createBoolQueryBuilder(queries);
             SearchRequestBuilder searchRequestBuilder = elasticSearchClient
                     .prepareSearch("qucosa")
                     .setTypes("documents")
                     .setScroll(new TimeValue(60, TimeUnit.SECONDS))
                     .setSize(100)
                     .setQuery(bqb)
-                    .addFields("PID", "PUB_TITLE", "PUB_AUTHOR", "PUB_DATE", "PUB_TYPE");
-
-            List<SortBuilder> sortBuilders = getFedoraSortBuilders(orderby);
-            for (SortBuilder sb : sortBuilders) {
-                searchRequestBuilder.addSort(sb);
-            }
+                    .addFields(
+                            searchFieldnameMap.get("docid"),
+                            searchFieldnameMap.get("title"),
+                            searchFieldnameMap.get("author"),
+                            searchFieldnameMap.get("completeddate"),
+                            searchFieldnameMap.get("doctype"));
+            addSortParameter(orderby, searchRequestBuilder);
 
             log.debug("Issue query: " + searchRequestBuilder.toString());
             SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
-            return scrollAndBuildResultList(searchResponse);
 
+            return scrollAndBuildResultList(searchResponse);
         } catch (ElasticsearchException esx) {
-            log.error("ElasticSearch specific error: " + esx.getMessage());
+            log.error("ElasticSearch specific error: {}", esx.getMessage());
             return errorResponse("Internal Server Error.", HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (BadSearchRequestException bsr) {
+            log.error("Bad search request: {}", bsr.getMessage());
+            return errorResponse(bsr.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception ex) {
-            log.error(ex.getMessage());
+            log.error("Unexpected Exception: {}", ex.getMessage());
             return errorResponse("Internal Server Error.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void addSortParameter(Map<String, String> orderby, SearchRequestBuilder searchRequestBuilder) {
+        List<SortBuilder> sortBuilders = getFedoraSortBuilders(orderby);
+        for (SortBuilder sb : sortBuilders) {
+            searchRequestBuilder.addSort(sb);
+        }
+    }
+
+    private BoolQueryBuilder createBoolQueryBuilder(Map<String, String> queries) throws Exception {
+        List<QueryBuilder> queryBuilders = getFedoraQueryBuilders(queries);
+        BoolQueryBuilder bqb = QueryBuilders.boolQuery();
+        for (QueryBuilder qb : queryBuilders) {
+            bqb.must(qb);
+        }
+        return bqb;
+    }
+
+    private void extractQueriesAndSortParameters(final Map<String, String> requestParameterMap, Map<String, String> queries, Map<String, String> orderby)
+            throws BadSearchRequestException {
+        for (String key : requestParameterMap.keySet()) {
+            if (key.startsWith("query")) {
+                String num = key.substring("query".length());
+                String fieldname = "field" + num;
+                if (!requestParameterMap.containsKey(fieldname)) {
+                    throw new BadSearchRequestException("No fieldname for query argument " + num + ".");
+                }
+                String queryname = "query" + num;
+                queries.put(requestParameterMap.get(fieldname), requestParameterMap.get(queryname));
+            } else if (key.startsWith("orderby")) {
+                String num = key.substring("orderby".length());
+                String orderargument = "orderhow" + num;
+                if (!requestParameterMap.containsKey(orderargument)) {
+                    throw new BadSearchRequestException("No sort order argument for order query " + num + ".");
+                }
+                String fieldname = "orderby" + num;
+                orderby.put(requestParameterMap.get(fieldname), requestParameterMap.get(orderargument));
+            }
+        }
+    }
+
+    private void assertParametersPresent(Map<String, String> requestParameterMap) throws BadSearchRequestException {
+        if (requestParameterMap.isEmpty()) {
+            throw new BadSearchRequestException();
         }
     }
 
     private List<SortBuilder> getFedoraSortBuilders(Map<String, String> sortArguments) {
         List<SortBuilder> result = new LinkedList<>();
         for (String fieldname : sortArguments.keySet()) {
-            SortBuilder sb = null;
             SortOrder order = mapToSortOrder(sortArguments.get(fieldname));
-            switch (fieldname) {
-                case "docid":
-                    sb = SortBuilders.fieldSort("PID").order(order);
-                    break;
-                case "completeddate":
-                    sb = SortBuilders.fieldSort("PUB_DATE").order(order);
-                    break;
-                case "title":
-                    sb = SortBuilders.fieldSort("PUB_TITLE").order(order);
-                    break;
-                case "abstract":
-                    sb = SortBuilders.fieldSort("PUB_ABSTRACT").order(order);
-                    break;
-                case "person":
-                    sb = SortBuilders.fieldSort("PUB_SUBMITTER").order(order);
-                    break;
-                case "author":
-                    sb = SortBuilders.fieldSort("PUB_AUTHOR").order(order);
-                    break;
-                default:
-            }
-            if (sb != null) {
-                result.add(sb);
+            if (sortBuilderMap.containsKey(fieldname)) {
+                result.add(sortBuilderMap.get(fieldname).order(order));
             }
         }
         return result;
@@ -180,88 +217,17 @@ public class SearchResource {
         List<QueryBuilder> result = new LinkedList<>();
         for (String k : queries.keySet()) {
             String q = queries.get(k);
-            switch (k) {
-                case "defaultsearchfield":
-                    result.add(queryString(q)
-                            .field("PUB_ABSTRACT")
-                            .field("PUB_AUTHOR")
-                            .field("PUB_ORIGINATOR")
-                            .field("PUB_TAG")
-                            .field("PUB_TITLE")
-                            .field("PUB_TYPE"));
-                    break;
-                case "docid":
-                    result.add(termQuery("PID", mapToFedoraId(q)));
-                    break;
-                case "serverstate":
-                    result.add(termQuery("OBJ_STATE", mapToFedoraState(q)));
-                    break;
-                case "completeddate":
-                    Matcher matcher = REGEXP_DATE_PATTERN.matcher(q);
-                    if (matcher.matches()) {
-                        result.add(rangeQuery("PUB_DATE")
-                                .from(mapToFedoraDate(matcher.group(1)))
-                                .to(mapToFedoraDate(matcher.group(2))));
-                    } else {
-                        result.add(termQuery("PUB_DATE", mapToFedoraDate(q)));
-                    }
-                    break;
-                case "title":
-                    result.add(matchQuery("PUB_TITLE", q));
-                    break;
-                case "abstract":
-                    result.add(matchQuery("PUB_ABSTRACT", q));
-                    break;
-                case "person":
-                    result.add(matchQuery("PUB_SUBMITTER", q));
-                    break;
-                case "author":
-                    result.add(matchQuery("PUB_AUTHOR", q));
-                    break;
-                case "subject":
-                    result.add(multiMatchQuery(q, "PUB_TAG", "PUB_TAG_DDC"));
-                    break;
-                case "doctype":
-                    result.add(termQuery("PUB_TYPE", q));
-                    break;
-                case "firstlevelname":
-                    result.add(matchQuery("PUB_ORIGINATOR", q));
-                    break;
-                case "secondlevelname":
-                    result.add(matchQuery("PUB_ORIGINATOR_SUB", q));
-                    break;
-                default:
-            }
+            result.add(queryBuilderMap.get(k).query(q).build());
         }
         result.add(termQuery("OBJ_OWNER_ID", "qucosa"));
         result.add(termQuery("IDX_ERROR", false));
         return result;
     }
 
-    private String mapToFedoraDate(String date) throws ParseException {
-        return new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat("yyyyMMdd").parse(date));
-    }
 
     private String mapToQucosaDate(String date) throws ParseException {
         if (date.isEmpty()) return "";
         return new SimpleDateFormat("yyyyMMdd").format(new SimpleDateFormat("yyyy-MM-dd").parse(date));
-    }
-
-    private String mapToFedoraState(String state) throws Exception {
-        switch (state) {
-            case "published":
-                return "A";
-            case "deleted":
-                return "D";
-            case "unpublished":
-                return "I";
-            default:
-                throw new Exception("Unknown object state: " + state);
-        }
-    }
-
-    private String mapToFedoraId(String pid) {
-        return "qucosa:" + pid;
     }
 
     private String mapToQucosaId(String id) {
@@ -315,15 +281,15 @@ public class SearchResource {
             w.writeStartElement("Result");
             w.writeAttribute("number", String.valueOf(i++));
 
-            String docid = mapToQucosaId(head(values(hit.field("PID"))));
+            String docid = mapToQucosaId(head(values(hit.field(searchFieldnameMap.get("docid")))));
 
             w.writeAttribute("docid", docid);
             w.writeAttribute(XLINK_NAMESPACE, "href", getHrefLink(docid));
-            w.writeAttribute("title", head(values(hit.field("PUB_TITLE"))));
-            w.writeAttribute("author", join(values(hit.field("PUB_AUTHOR"))));
+            w.writeAttribute("title", head(values(hit.field(searchFieldnameMap.get("title")))));
+            w.writeAttribute("author", join(values(hit.field(searchFieldnameMap.get("author")))));
             w.writeAttribute("year", "");
-            w.writeAttribute("completeddate", mapToQucosaDate(head(values(hit.field("PUB_DATE")))));
-            w.writeAttribute("doctype", head(values(hit.field("PUB_TYPE"))));
+            w.writeAttribute("completeddate", mapToQucosaDate(head(values(hit.field(searchFieldnameMap.get("completeddate"))))));
+            w.writeAttribute("doctype", head(values(hit.field(searchFieldnameMap.get("doctype")))));
             w.writeAttribute("issue", "");
             w.writeEndElement();
         }

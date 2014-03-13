@@ -166,8 +166,23 @@ public class SearchResourceTest {
                 .andExpect(status().isOk())
                 .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("2"))
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@completeddate").string("20121203"))
-                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[2]/@completeddate").string("20121128"))
-        ;
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[2]/@completeddate").string("20121128"));
+    }
+
+    @Test
+    public void findByDDCSubject() throws Exception {
+        mockMvc.perform(get("/search?field0=subject&query0=616"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("1"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@docid").string("10033"));
+    }
+
+    @Test
+    public void findByUncontrolledSubject() throws Exception {
+        mockMvc.perform(get("/search?field0=subject&query0=Halbgruppe"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("1"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@docid").string("10044"));
     }
 
 }
