@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
-class ContextConfiguration {
+class AuthenticationConfiguration {
 
     @Bean
     @Scope("request")
