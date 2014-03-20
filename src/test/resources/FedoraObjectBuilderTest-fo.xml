@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (C) 2013 SLUB Dresden
+~
+~ This program is free software: you can redistribute it and/or modify
+~ it under the terms of the GNU General Public License as published by
+~ the Free Software Foundation, either version 3 of the License, or
+~ (at your option) any later version.
+~
+~ This program is distributed in the hope that it will be useful,
+~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+~ GNU General Public License for more details.
+~
+~ You should have received a copy of the GNU General Public License
+~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<fox:digitalObject VERSION="1.1" PID="qucosa:4711" xmlns:fox="info:fedora/fedora-system:def/foxml#">
+    <fox:objectProperties>
+        <fox:property NAME="info:fedora/fedora-system:def/model#state" VALUE="A"/>
+        <fox:property NAME="info:fedora/fedora-system:def/model#label" VALUE="An arbitrarily migrated Qucosa Document"/>
+        <fox:property NAME="info:fedora/fedora-system:def/model#ownerId" VALUE="slub"/>
+    </fox:objectProperties>
+    <fox:datastream ID="DC" CONTROL_GROUP="X" STATE="A">
+        <fox:datastreamVersion ID="DC.0" FORMAT_URI="http://www.openarchives.org/OAI/2.0/oai_dc/" MIMETYPE="text/xml"
+                               LABEL="Dublin Core Record for this object">
+            <fox:xmlContent>
+                <oai:dc xmlns:oai="http://www.openarchives.org/OAI/2.0/oai_dc/">
+                    <ns:title xmlns:ns="http://purl.org/dc/elements/1.1/">The Title of an arbitrarily migrated Qucosa Document</ns:title>
+                    <ns:identifier xmlns:ns="http://purl.org/dc/elements/1.1/">urn:de:slub-dresden:qucosa:4711
+                    </ns:identifier>
+                </oai:dc>
+            </fox:xmlContent>
+        </fox:datastreamVersion>
+    </fox:datastream>
+    <fox:datastream ID="RELS-EXT" STATE="A" CONTROL_GROUP="X">
+        <fox:datastreamVersion ID="RELS-EXT.0" MIMETYPE="application/rdf+xml"
+                               FORMAT_URI="info:fedora/fedora-system:FedoraRELSExt-1.0"
+                               LABEL="RDF Statements about this object">
+            <fox:xmlContent>
+                <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                    <rdf:Description rdf:about="info:fedora/qucosa:4711">
+                        <rel:isMemberOfCollection rdf:resource="info:fedora/qucosa:slub"
+                                                  xmlns:rel="info:fedora/fedora-system:def/relations-external#"/>
+                    </rdf:Description>
+                </rdf:RDF>
+            </fox:xmlContent>
+        </fox:datastreamVersion>
+    </fox:datastream>
+</fox:digitalObject>

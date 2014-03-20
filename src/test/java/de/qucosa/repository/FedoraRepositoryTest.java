@@ -17,10 +17,14 @@
 
 package de.qucosa.repository;
 
+import com.sun.jersey.api.client.WebResource;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
+import com.yourmediashelf.fedora.client.request.Ingest;
 import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
+import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
+import fedora.fedoraSystemDef.foxml.impl.DigitalObjectDocumentImpl;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,18 +34,17 @@ import java.io.InputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-public class FedoraRepositoryConnectionTest {
+public class FedoraRepositoryTest {
 
-    private FedoraRepositoryConnection fedoraRepositoryConnection;
+    private FedoraRepository fedoraRepository;
     private FedoraClient fedoraClient;
 
     @Before
     public void setUp() {
         fedoraClient = mock(FedoraClient.class);
-        fedoraRepositoryConnection = new FedoraRepositoryConnection(fedoraClient);
+        fedoraRepository = new FedoraRepository(fedoraClient);
     }
 
     @Test
@@ -50,7 +53,7 @@ public class FedoraRepositoryConnectionTest {
         when(dsResponse.getEntityInputStream()).thenReturn(new ByteArrayInputStream("Test Content".getBytes()));
         when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenReturn(dsResponse);
 
-        InputStream contentStream = fedoraRepositoryConnection.getDatastreamContent("test:1", "TEST-DS");
+        InputStream contentStream = fedoraRepository.getDatastreamContent("test:1", "TEST-DS");
 
         assertEquals("Test Content", IOUtils.toString(contentStream));
     }
@@ -59,7 +62,7 @@ public class FedoraRepositoryConnectionTest {
     @Test(expected = FedoraClientException.class)
     public void throwsFedoraClientException() throws Exception {
         when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenThrow(FedoraClientException.class);
-        fedoraRepositoryConnection.getDatastreamContent("test:1", "TEST-DS");
+        fedoraRepository.getDatastreamContent("test:1", "TEST-DS");
     }
 
 }

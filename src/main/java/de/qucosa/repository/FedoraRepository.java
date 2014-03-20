@@ -20,10 +20,14 @@ package de.qucosa.repository;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
+import com.yourmediashelf.fedora.client.request.Ingest;
 import com.yourmediashelf.fedora.client.request.RiSearch;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
+import com.yourmediashelf.fedora.client.response.IngestResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
 import de.qucosa.util.Tuple;
+import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
+import org.springframework.stereotype.Repository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,13 +36,14 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FedoraRepositoryConnection {
+@Repository
+public class FedoraRepository {
 
     public static final String RELATION_DERIVATIVE = "isDerivationOf";
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
     private final FedoraClient fedoraClient;
 
-    public FedoraRepositoryConnection(FedoraClient fedoraClient) {
+    public FedoraRepository(FedoraClient fedoraClient) {
         this.fedoraClient = fedoraClient;
     }
 
@@ -114,6 +119,13 @@ public class FedoraRepositoryConnection {
             closeIfNotNull(riSearchResponse);
         }
         return result;
+    }
+
+    public String ingest(DigitalObjectDocument ingestObject) throws FedoraClientException {
+        Ingest ingest = new Ingest();
+        ingest.content(ingestObject.newInputStream());
+        IngestResponse ir = ingest.execute(fedoraClient);
+        return ir.getPid();
     }
 
     private void closeIfNotNull(FedoraResponse fr) {

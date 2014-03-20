@@ -31,14 +31,14 @@ import java.util.Map;
 @Configuration
 class FedoraRepositoryConnectionFactory {
 
-    private static final Map<FedoraCredentials, FedoraRepositoryConnection> clients = new HashMap<>();
+    private static final Map<FedoraCredentials, FedoraRepository> clients = new HashMap<>();
 
     @Bean
     @Scope("request")
-    public FedoraRepositoryConnection fedoraRepositoryConnection(Authentication auth, FedoraAuthorityCredentialsMap fedoraAuthorityCredentialsMap) throws Exception {
+    public FedoraRepository fedoraRepositoryConnection(Authentication auth, FedoraAuthorityCredentialsMap fedoraAuthorityCredentialsMap) throws Exception {
         FedoraCredentials fc = getFedoraCredentials(auth, fedoraAuthorityCredentialsMap);
         if (!clients.containsKey(fc)) {
-            clients.put(fc, new FedoraRepositoryConnection(new FedoraClient(fc)));
+            clients.put(fc, new FedoraRepository(new FedoraClient(fc)));
         }
         return clients.get(fc);
     }

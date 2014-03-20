@@ -18,11 +18,12 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.repository.FedoraRepositoryConnection;
+import de.qucosa.repository.FedoraRepository;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -37,6 +38,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,7 +48,9 @@ import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:testContext.xml")
@@ -54,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class DocumentResourceTest {
 
     @Autowired
-    private FedoraRepositoryConnection fedoraRepositoryConnection;
+    private FedoraRepository fedoraRepository;
     @Autowired
     private DocumentResource documentResource;
     @Autowired
@@ -69,6 +73,10 @@ public class DocumentResourceTest {
         XMLUnit.setXpathNamespaceContext(new SimpleNamespaceContext(prefixMap));
     }
 
+    private static final Map<String, String> NS =
+            Collections.singletonMap(SearchResource.XLINK_NAMESPACE_PREFIX, SearchResource.XLINK_NAMESPACE);
+
+
     @Before
     public void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
@@ -76,13 +84,13 @@ public class DocumentResourceTest {
 
     @After
     public void tearDown() {
-        Mockito.reset(fedoraRepositoryConnection);
+        Mockito.reset(fedoraRepository);
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void returnsOpus2XML() throws Exception {
-        when(fedoraRepositoryConnection.getPIDsByPattern(anyString())).thenReturn(anyList());
+        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
 
         String response = documentResource.listAll().getBody();
 
@@ -92,7 +100,7 @@ public class DocumentResourceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void returnsEmptyDocumentList() throws Exception {
-        when(fedoraRepositoryConnection.getPIDsByPattern(anyString())).thenReturn(anyList());
+        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(anyList());
 
         String response = documentResource.listAll().getBody();
 
@@ -103,18 +111,18 @@ public class DocumentResourceTest {
     public void putsCorrectXLinkToDocument() throws Exception {
         ArrayList<String> documentList = new ArrayList<>();
         documentList.add("qucosa:1234");
-        when(fedoraRepositoryConnection.getPIDsByPattern(anyString())).thenReturn(documentList);
+        when(fedoraRepository.getPIDsByPattern(anyString())).thenReturn(documentList);
 
         String response = documentResource.listAll().getBody();
 
-        assertXpathEvaluatesTo(httpServletRequest.getRequestURL() + "/1234", "/Opus/DocumentList/Document/@xlink:href", response);
+        assertXpathEvaluatesTo(httpServletRequest.getRequestURL() + "/document/1234", "/Opus/DocumentList/Document/@xlink:href", response);
         assertXpathEvaluatesTo("1234", "/Opus/DocumentList/Document/@xlink:nr", response);
         assertXpathEvaluatesTo("simple", "/Opus/DocumentList/Document/@xlink:type", response);
     }
 
     @Test
     public void returns404WithNoContent() throws Exception {
-        when(fedoraRepositoryConnection.getDatastreamContent(anyString(), anyString())).thenThrow(
+        when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
                 new FedoraClientException(404, "NOT FOUND"));
 
         mockMvc.perform(get("/document/no-valid-id")
@@ -124,12 +132,40 @@ public class DocumentResourceTest {
 
     @Test
     public void returns401WhenNotAuthorized() throws Exception {
-        when(fedoraRepositoryConnection.getDatastreamContent(anyString(), anyString())).thenThrow(
+        when(fedoraRepository.getDatastreamContent(anyString(), anyString())).thenThrow(
                 new FedoraClientException(401, "UNAUTHORIZED"));
 
         mockMvc.perform(get("/document/no-auth")
                 .accept(MediaType.ALL))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void returnsBadRequestOnPostWithoutURNParameters() throws Exception {
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void returnsUnsupportedMediatype() throws Exception {
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v2+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v2+xml")))
+                .andExpect(status().isUnsupportedMediaType());
+    }
+
+    @Test
+    @Ignore("Not yet ready.")
+    public void createsNewDocument() throws Exception {
+        mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content("<Opus><Opus_Document/></Opus>"))
+                .andExpect(status().isCreated())
+                .andExpect(xpath("/Opus/Opus_Document/@xlink:href", NS).exists())
+                .andExpect(xpath("/Opus/Opus_Document/@id").exists());
     }
 
 }

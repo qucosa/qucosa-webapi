@@ -25,7 +25,7 @@
     <mvc:annotation-driven/>
 
     <bean id="fedoraRepository" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="de.qucosa.repository.FedoraRepositoryConnection"/>
+        <constructor-arg value="de.qucosa.repository.FedoraRepository"/>
     </bean>
 
     <bean id="documentResource" class="de.qucosa.webapi.v1.DocumentResource">
