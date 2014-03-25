@@ -19,11 +19,11 @@ package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.repository.FedoraRepository;
+import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -44,8 +44,7 @@ import java.util.Map;
 
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,6 +56,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 public class DocumentResourceTest {
 
+    private static final Map<String, String> NS =
+            Collections.singletonMap(SearchResource.XLINK_NAMESPACE_PREFIX, SearchResource.XLINK_NAMESPACE);
     @Autowired
     private FedoraRepository fedoraRepository;
     @Autowired
@@ -72,10 +73,6 @@ public class DocumentResourceTest {
         prefixMap.put("xlink", "http://www.w3.org/1999/xlink");
         XMLUnit.setXpathNamespaceContext(new SimpleNamespaceContext(prefixMap));
     }
-
-    private static final Map<String, String> NS =
-            Collections.singletonMap(SearchResource.XLINK_NAMESPACE_PREFIX, SearchResource.XLINK_NAMESPACE);
-
 
     @Before
     public void setUp() throws Exception {
@@ -157,8 +154,9 @@ public class DocumentResourceTest {
     }
 
     @Test
-    @Ignore("Not yet ready.")
-    public void createsNewDocument() throws Exception {
+    public void postResponseDocumentHasLinkAndIdAttributes() throws Exception {
+        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
+
         mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
