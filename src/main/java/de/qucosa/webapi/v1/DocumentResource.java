@@ -22,6 +22,9 @@ import de.qucosa.repository.FedoraRepository;
 import de.qucosa.util.FedoraObjectBuilder;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
+import org.apache.xmlbeans.XmlOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
@@ -58,6 +61,7 @@ class DocumentResource {
 
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
+    static private final Logger log = LoggerFactory.getLogger(DocumentResource.class);
     private static final XPathFactory xPathFactory;
     private static final XPath xPath;
 
@@ -65,8 +69,6 @@ class DocumentResource {
         xPathFactory = XPathFactory.newInstance();
         xPath = xPathFactory.newXPath();
     }
-
-    private static final String NBN_DE = "nbn:de";
 
     final private DocumentBuilder documentBuilder;
     final private Transformer transformer;
@@ -166,11 +168,12 @@ class DocumentResource {
 
         DigitalObjectDocument dod = buildDocument(qucosaDocument);
 
-        // TODO Dump only when LogLevel is set to DEBUG
-        try {
-            dod.save(System.out);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (log.isDebugEnabled()) {
+            try {
+                dod.save(System.out, new XmlOptions().setSavePrettyPrint());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         String pid = fedoraRepository.ingest(dod);
