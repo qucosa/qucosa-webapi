@@ -45,8 +45,7 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,7 +60,6 @@ class DocumentResource {
 
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
-    static private final Logger log = LoggerFactory.getLogger(DocumentResource.class);
     private static final XPathFactory xPathFactory;
     private static final XPath xPath;
 
@@ -70,6 +68,7 @@ class DocumentResource {
         xPath = xPathFactory.newXPath();
     }
 
+    final private Logger log = LoggerFactory.getLogger(DocumentResource.class);
     final private DocumentBuilder documentBuilder;
     final private Transformer transformer;
     final private XMLOutputFactory xmlOutputFactory;
@@ -86,11 +85,6 @@ class DocumentResource {
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 
         xmlOutputFactory = XMLOutputFactory.newFactory();
-    }
-
-    private static String xp(String xpath, Document doc) throws XPathExpressionException {
-        XPathExpression expr = xPath.compile(xpath);
-        return expr.evaluate(doc);
     }
 
     private static String ats(String lastName, String firstName, String title) {
@@ -159,12 +153,10 @@ class DocumentResource {
             @RequestParam("niss") String niss,
             @RequestBody String body) throws Exception {
 
-
         Document qucosaDocument = DocumentBuilderFactory.newInstance()
                 .newDocumentBuilder()
                 .parse(IOUtils.toInputStream(body));
-        // TODO check valid body XML
-
+        assertBasicDocumentProperties(qucosaDocument);
 
         DigitalObjectDocument dod = buildDocument(qucosaDocument);
 
@@ -183,24 +175,63 @@ class DocumentResource {
         return new ResponseEntity<>(okResponse, HttpStatus.CREATED);
     }
 
+    @ExceptionHandler(BadQucosaDocumentException.class)
+    public ResponseEntity generalExceptionHandler(BadQucosaDocumentException ex) throws XMLStreamException {
+        log.error(ex.getMessage());
+        log.debug(ex.getXml());
+        return errorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    private ResponseEntity<String> errorResponse(String message, HttpStatus status) throws XMLStreamException {
+        StringWriter sw = new StringWriter();
+        XMLStreamWriter w = xmlOutputFactory.createXMLStreamWriter(sw);
+        w.writeStartDocument("UTF-8", "1.0");
+        w.writeStartElement("Opus");
+        w.writeStartElement("Error");
+        w.writeAttribute("message", message);
+        w.writeEndElement();
+        w.writeEndElement();
+        w.writeEndDocument();
+        w.flush();
+        return new ResponseEntity<>(sw.toString(), status);
+    }
+
+    private void assertBasicDocumentProperties(Document qucosaDocument) throws Exception {
+        if (xPath.evaluate("/Opus[@Version='2.0']", qucosaDocument, XPathConstants.NODE) == null) {
+            throw new BadQucosaDocumentException("No Opus node with version '2.0'.", qucosaDocument);
+        }
+        if (xPath.evaluate("/Opus/Opus_Document", qucosaDocument, XPathConstants.NODE) == null) {
+            throw new BadQucosaDocumentException("No Opus_Document node found.", qucosaDocument);
+        }
+        if (xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/LastName", qucosaDocument, XPathConstants.NODE) == null) {
+            throw new BadQucosaDocumentException("No PersonAuthor node with LastName node found.", qucosaDocument);
+        }
+        if (xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/FirstName", qucosaDocument, XPathConstants.NODE) == null) {
+            throw new BadQucosaDocumentException("No PersonAuthor node with FirstName node found.", qucosaDocument);
+        }
+        if (xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDocument, XPathConstants.NODE) == null) {
+            throw new BadQucosaDocumentException("No PersonAuthor node with FirstName node found.", qucosaDocument);
+        }
+    }
+
     private DigitalObjectDocument buildDocument(Document qucosaDoc) throws Exception {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
 
-        String pid = xp("/Opus/Opus_Document/DocumentId", qucosaDoc);
+        String pid = xPath.evaluate("/Opus/Opus_Document/DocumentId", qucosaDoc);
         if (!pid.isEmpty()) fob.pid(pid);
 
-        String ats = ats(xp("/Opus/Opus_Document/PersonAuthor[1]/LastName", qucosaDoc),
-                xp("/Opus/Opus_Document/PersonAuthor[1]/FirstName", qucosaDoc),
-                xp("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc));
+        String ats = ats(xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/LastName", qucosaDoc),
+                xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/FirstName", qucosaDoc),
+                xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc));
         if (!ats.isEmpty()) fob.label(ats);
 
-        String title = xp("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc);
+        String title = xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc);
         if (!title.isEmpty()) fob.title(title);
 
 
         // TODO Add all available URNs generate one after ingest
         // TODO Build URN class with special NISS handling for NID="nbn:de" including check digit
-        String urn = xp("/Opus/Opus_Document/IdentifierUrn[1]/Value", qucosaDoc);
+        String urn = xPath.evaluate("/Opus/Opus_Document/IdentifierUrn[1]/Value", qucosaDoc);
         if (!urn.isEmpty()) fob.urn(urn);
 
         fob.ownerId("qucosa");

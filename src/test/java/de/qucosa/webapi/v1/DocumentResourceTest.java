@@ -160,10 +160,55 @@ public class DocumentResourceTest {
         mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
-                .content("<Opus><Opus_Document/></Opus>"))
+                .content(
+                        "<Opus Version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
                 .andExpect(status().isCreated())
                 .andExpect(xpath("/Opus/Opus_Document/@xlink:href", NS).exists())
                 .andExpect(xpath("/Opus/Opus_Document/@id").exists());
+    }
+
+    @Test
+    public void getQucosaErrorAndBadrequestResponseOnInvalidContent() throws Exception {
+        mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content("<Invalid/>"))
+                .andExpect(status().isBadRequest())
+                .andExpect(xpath("/Opus/Error").exists());
+    }
+
+    @Test
+    public void getQucosaBadRequestResponseOnWrongVersion() throws Exception {
+        mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content("<Opus Version=\"1.0-wrong\"/>"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void getQucosaBadRequestResponseOnInformationMissingNode() throws Exception {
+        for (String content : new String[]{
+                "<Opus Version=\"2.0\"/>", // missing Opus_Document
+                "<Opus Version=\"2.0\"><Opus_Document/></Opus>", // missing PersonAuthor
+                "<Opus Version=\"2.0\"><Opus_Document><PersonAuthor><LastName/></PersonAuthor></Opus_Document></Opus>", // missing FirstName
+                "<Opus Version=\"2.0\"><Opus_Document><PersonAuthor><LastName/><FirstName/></PersonAuthor></Opus_Document></Opus>", // missing TitleMain
+        }) {
+            mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+                    .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                    .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                    .content(content))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
 }
