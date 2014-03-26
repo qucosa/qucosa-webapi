@@ -46,6 +46,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.InputStream;
@@ -197,20 +198,16 @@ class DocumentResource {
     }
 
     private void assertBasicDocumentProperties(Document qucosaDocument) throws Exception {
-        if (xPath.evaluate("/Opus[@Version='2.0']", qucosaDocument, XPathConstants.NODE) == null) {
-            throw new BadQucosaDocumentException("No Opus node with version '2.0'.", qucosaDocument);
-        }
-        if (xPath.evaluate("/Opus/Opus_Document", qucosaDocument, XPathConstants.NODE) == null) {
-            throw new BadQucosaDocumentException("No Opus_Document node found.", qucosaDocument);
-        }
-        if (xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/LastName", qucosaDocument, XPathConstants.NODE) == null) {
-            throw new BadQucosaDocumentException("No PersonAuthor node with LastName node found.", qucosaDocument);
-        }
-        if (xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/FirstName", qucosaDocument, XPathConstants.NODE) == null) {
-            throw new BadQucosaDocumentException("No PersonAuthor node with FirstName node found.", qucosaDocument);
-        }
-        if (xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDocument, XPathConstants.NODE) == null) {
-            throw new BadQucosaDocumentException("No PersonAuthor node with FirstName node found.", qucosaDocument);
+        assertXPathNodeExists("/Opus[@Version='2.0']", "No Opus node with version '2.0'.", qucosaDocument);
+        assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", qucosaDocument);
+        assertXPathNodeExists("/Opus/Opus_Document/PersonAuthor[1]/LastName", "No PersonAuthor node with LastName node found.", qucosaDocument);
+        assertXPathNodeExists("/Opus/Opus_Document/PersonAuthor[1]/FirstName", "No PersonAuthor node with FirstName node found.", qucosaDocument);
+        assertXPathNodeExists("/Opus/Opus_Document/TitleMain[1]/Value", "No PersonAuthor node with FirstName node found.", qucosaDocument);
+    }
+
+    private void assertXPathNodeExists(String xpath, String msg, Document doc) throws XPathExpressionException, BadQucosaDocumentException {
+        if (xPath.evaluate(xpath, doc, XPathConstants.NODE) == null) {
+            throw new BadQucosaDocumentException(msg, doc);
         }
     }
 
