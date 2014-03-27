@@ -26,6 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -45,6 +46,7 @@ import java.util.Map;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
 import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -58,6 +60,8 @@ public class DocumentResourceTest {
 
     private static final Map<String, String> NS =
             Collections.singletonMap(SearchResource.XLINK_NAMESPACE_PREFIX, SearchResource.XLINK_NAMESPACE);
+    private static final String DOCUMENT_POST_URL = "/document?nis1=bsz&nis2=15&niss=qucosa";
+    private static final String DEFAULT_URN_PREFIX = "urn:nbn:de:bsz:15-qucosa";
     @Autowired
     private FedoraRepository fedoraRepository;
     @Autowired
@@ -71,6 +75,11 @@ public class DocumentResourceTest {
     static {
         Map<String, String> prefixMap = new HashMap<>();
         prefixMap.put("xlink", "http://www.w3.org/1999/xlink");
+        prefixMap.put("fox", "info:fedora/fedora-system:def/foxml#");
+        prefixMap.put("rel", "info:fedora/fedora-system:def/relations-external#");
+        prefixMap.put("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+        prefixMap.put("oai", "http://www.openarchives.org/OAI/2.0/oai_dc/");
+        prefixMap.put("ns", "http://purl.org/dc/elements/1.1/");
         XMLUnit.setXpathNamespaceContext(new SimpleNamespaceContext(prefixMap));
     }
 
@@ -157,12 +166,13 @@ public class DocumentResourceTest {
     public void postResponseDocumentHasLinkAndIdAttributes() throws Exception {
         when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
 
-        mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+        mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .content(
                         "<Opus Version=\"2.0\">" +
                                 "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
                                 "<PersonAuthor>" +
                                 "<LastName>Shakespear</LastName>" +
                                 "<FirstName>William</FirstName>" +
@@ -178,7 +188,7 @@ public class DocumentResourceTest {
 
     @Test
     public void getQucosaErrorAndBadrequestResponseOnInvalidContent() throws Exception {
-        mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+        mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .content("<Invalid/>"))
@@ -188,7 +198,7 @@ public class DocumentResourceTest {
 
     @Test
     public void getQucosaBadRequestResponseOnWrongVersion() throws Exception {
-        mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+        mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .content("<Opus Version=\"1.0-wrong\"/>"))
@@ -203,12 +213,61 @@ public class DocumentResourceTest {
                 "<Opus Version=\"2.0\"><Opus_Document><PersonAuthor><LastName/></PersonAuthor></Opus_Document></Opus>", // missing FirstName
                 "<Opus Version=\"2.0\"><Opus_Document><PersonAuthor><LastName/><FirstName/></PersonAuthor></Opus_Document></Opus>", // missing TitleMain
         }) {
-            mockMvc.perform(post("/document?nis1=qucosa:de&nis2=test&niss=4711")
+            mockMvc.perform(post(DOCUMENT_POST_URL)
                     .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                     .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                     .content(content))
                     .andExpect(status().isBadRequest());
         }
+    }
+
+    @Test
+    public void documentWithoutPIDGetsOne() throws Exception {
+        when(fedoraRepository.mintPid("qucosa")).thenReturn("qucosa:4711");
+        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
+
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus Version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated())
+                .andExpect(xpath("/Opus/Opus_Document/@id").exists())
+                .andExpect(xpath("/Opus/Opus_Document/@id").string("4711"));
+    }
+
+    @Test
+    public void documentWithoutURNGetsOne() throws Exception {
+        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus Version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<DigitalObjectDocument> argCapt = ArgumentCaptor.forClass(DigitalObjectDocument.class);
+        verify(fedoraRepository).ingest(argCapt.capture());
+        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-4711", "//ns:identifier", argCapt.getValue().getDigitalObject().xmlText());
     }
 
 }

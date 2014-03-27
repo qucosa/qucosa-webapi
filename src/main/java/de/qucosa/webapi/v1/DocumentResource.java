@@ -160,15 +160,53 @@ class DocumentResource {
                 .parse(IOUtils.toInputStream(body));
         assertBasicDocumentProperties(qucosaDocument);
 
-        DigitalObjectDocument dod = buildDocument(qucosaDocument);
+        FedoraObjectBuilder fob = buildDocument(qucosaDocument);
+        String pid = ensurePID(fob);
+        ensureURN(nis1, nis2, niss, fob, pid);
+
+        DigitalObjectDocument dod = fob.build();
 
         if (log.isDebugEnabled()) dumpToStdOut(dod);
 
-        String pid = fedoraRepository.ingest(dod);
+        pid = fedoraRepository.ingest(dod);
 
-        String id = pid.substring("qucosa:".length() + 1);
+        String id = pid.substring("qucosa:".length());
         String okResponse = getDocumentCreatedResponse(id);
         return new ResponseEntity<>(okResponse, HttpStatus.CREATED);
+    }
+
+    @ExceptionHandler(BadQucosaDocumentException.class)
+    public ResponseEntity qucosaDocumentExceptionHandler(BadQucosaDocumentException ex) throws XMLStreamException {
+        log.error(ex.getMessage());
+        log.debug(ex.getXml());
+        return errorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    private void ensureURN(String nis1, String nis2, String niss, FedoraObjectBuilder fob, String pid) {
+        if (!hasURN(fob)) {
+            // TODO Construct URN according to DNB rules using nis1, nis2 and niss
+            String nbnurn = String.format("urn:nbn:de:%s:%s-%s-%s", nis1, nis2, niss, pid.substring("qucosa:".length()));
+            fob.addURN(nbnurn);
+        }
+    }
+
+    private String ensurePID(FedoraObjectBuilder fob) throws FedoraClientException {
+        String pid;
+        if (hasPID(fob)) {
+            pid = fob.pid();
+        } else {
+            pid = fedoraRepository.mintPid("qucosa");
+            fob.pid(pid);
+        }
+        return pid;
+    }
+
+    private boolean hasURN(FedoraObjectBuilder fob) {
+        return (!fob.URNs().isEmpty());
+    }
+
+    private boolean hasPID(FedoraObjectBuilder fob) {
+        return (fob.pid() != null) && (!fob.pid().isEmpty());
     }
 
     private void dumpToStdOut(DigitalObjectDocument dod) {
@@ -177,13 +215,6 @@ class DocumentResource {
         } catch (IOException e) {
             log.warn(e.getMessage());
         }
-    }
-
-    @ExceptionHandler(BadQucosaDocumentException.class)
-    public ResponseEntity qucosaDocumentExceptionHandler(BadQucosaDocumentException ex) throws XMLStreamException {
-        log.error(ex.getMessage());
-        log.debug(ex.getXml());
-        return errorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     private ResponseEntity<String> errorResponse(String message, HttpStatus status) throws XMLStreamException {
@@ -214,11 +245,11 @@ class DocumentResource {
         }
     }
 
-    private DigitalObjectDocument buildDocument(Document qucosaDoc) throws Exception {
+    private FedoraObjectBuilder buildDocument(Document qucosaDoc) throws Exception {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
 
         String pid = xPath.evaluate("/Opus/Opus_Document/DocumentId", qucosaDoc);
-        if (!pid.isEmpty()) fob.pid(pid);
+        if (!pid.isEmpty()) fob.pid("qucosa:" + pid);
 
         String ats = ats(xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/LastName", qucosaDoc),
                 xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/FirstName", qucosaDoc),
@@ -230,14 +261,14 @@ class DocumentResource {
 
         NodeList urnNodes = (NodeList) xPath.evaluate("/Opus/Opus_Document/IdentifierUrn/Value", qucosaDoc, XPathConstants.NODESET);
         for (int i = 0; i < urnNodes.getLength(); i++) {
-            fob.addUrn(urnNodes.item(i).getNodeValue());
+            fob.addURN(urnNodes.item(i).getNodeValue());
         }
 
         fob.ownerId("qucosa");
         fob.parentCollectionPid("qucosa:qucosa");
         fob.qucosaXmlDocument(qucosaDoc);
 
-        return fob.build();
+        return fob;
     }
 
     private String getDocumentCreatedResponse(String id) throws XMLStreamException {

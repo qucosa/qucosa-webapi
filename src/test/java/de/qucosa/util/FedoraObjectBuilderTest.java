@@ -51,7 +51,7 @@ public class FedoraObjectBuilderTest {
     public void buildDocument() throws IOException, SAXException, ParserConfigurationException {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
         fob.pid("qucosa:4711");
-        fob.addUrn("urn:de:slub-dresden:qucosa:4711");
+        fob.addURN("urn:de:slub-dresden:qucosa:4711");
         fob.label("An arbitrarily migrated Qucosa Document");
         fob.title("The Title of an arbitrarily migrated Qucosa Document");
         fob.ownerId("slub");
@@ -143,7 +143,7 @@ public class FedoraObjectBuilderTest {
     @Test
     public void documentWithURN() throws Exception {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
-        fob.addUrn("urn:foo:bla-4711");
+        fob.addURN("urn:foo:bla-4711");
         Document testDocument = XMLUnit.buildTestDocument(serialize(fob));
 
         XMLAssert.assertXpathEvaluatesTo("urn:foo:bla-4711", "//oai:dc/ns:identifier", testDocument);
@@ -152,8 +152,8 @@ public class FedoraObjectBuilderTest {
     @Test
     public void documentWithMultipleURNs() throws Exception {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
-        fob.addUrn("urn:foo:bla-4711");
-        fob.addUrn("urn:foo:blub-0815");
+        fob.addURN("urn:foo:bla-4711");
+        fob.addURN("urn:foo:blub-0815");
         Document testDocument = XMLUnit.buildTestDocument(serialize(fob));
 
         XMLAssert.assertXpathEvaluatesTo("urn:foo:bla-4711", "//oai:dc/ns:identifier[1]", testDocument);

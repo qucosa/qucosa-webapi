@@ -17,14 +17,12 @@
 
 package de.qucosa.repository;
 
-import com.sun.jersey.api.client.WebResource;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
-import com.yourmediashelf.fedora.client.request.Ingest;
+import com.yourmediashelf.fedora.client.request.GetNextPID;
 import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
-import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
-import fedora.fedoraSystemDef.foxml.impl.DigitalObjectDocumentImpl;
+import com.yourmediashelf.fedora.client.response.GetNextPIDResponse;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +32,8 @@ import java.io.InputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class FedoraRepositoryTest {
 
@@ -63,6 +62,17 @@ public class FedoraRepositoryTest {
     public void throwsFedoraClientException() throws Exception {
         when(fedoraClient.execute(any(GetDatastreamDissemination.class))).thenThrow(FedoraClientException.class);
         fedoraRepository.getDatastreamContent("test:1", "TEST-DS");
+    }
+
+    @Test
+    public void mintNewPid() throws Exception {
+        GetNextPIDResponse mockGetNextPidResponse = mock(GetNextPIDResponse.class);
+        when(mockGetNextPidResponse.getPid()).thenReturn("qucosa:4711");
+        when(fedoraClient.execute(any(GetNextPID.class))).thenReturn(mockGetNextPidResponse);
+
+        String newPid = fedoraRepository.mintPid(null);
+
+        assertEquals("qucosa:4711", newPid);
     }
 
 }

@@ -27,6 +27,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.xml.parsers.ParserConfigurationException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -68,7 +69,7 @@ public class FedoraObjectBuilder {
 
     }
 
-    public FedoraObjectBuilder addUrn(String urn) {
+    public FedoraObjectBuilder addURN(String urn) {
         this.URNs.add(urn);
         return this;
     }
@@ -116,6 +117,14 @@ public class FedoraObjectBuilder {
         }
         this.state = state;
         return this;
+    }
+
+    public String pid() {
+        return pid;
+    }
+
+    public Set<String> URNs() {
+        return Collections.unmodifiableSet(URNs);
     }
 
     private void addRELSEXTDatastream(DigitalObjectDocument.DigitalObject dobj) {
@@ -187,7 +196,7 @@ public class FedoraObjectBuilder {
         ElementType t = dc.addNewTitle();
         t.setStringValue(title);
 
-        for(String urn : URNs) {
+        for (String urn : URNs) {
             ElementType id = dc.addNewIdentifier();
             id.setStringValue(urn);
         }

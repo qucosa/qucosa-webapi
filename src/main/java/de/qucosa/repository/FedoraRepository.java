@@ -20,9 +20,11 @@ package de.qucosa.repository;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
+import com.yourmediashelf.fedora.client.request.GetNextPID;
 import com.yourmediashelf.fedora.client.request.Ingest;
 import com.yourmediashelf.fedora.client.request.RiSearch;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
+import com.yourmediashelf.fedora.client.response.GetNextPIDResponse;
 import com.yourmediashelf.fedora.client.response.IngestResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
 import de.qucosa.util.Tuple;
@@ -119,6 +121,12 @@ public class FedoraRepository {
             closeIfNotNull(riSearchResponse);
         }
         return result;
+    }
+
+    public String mintPid(String namespace) throws FedoraClientException {
+        GetNextPIDResponse response =
+                (GetNextPIDResponse) fedoraClient.execute(new GetNextPID().namespace(namespace));
+        return response.getPid();
     }
 
     public String ingest(DigitalObjectDocument ingestObject) throws FedoraClientException {
