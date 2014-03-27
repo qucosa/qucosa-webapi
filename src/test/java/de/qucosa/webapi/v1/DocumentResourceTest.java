@@ -170,7 +170,7 @@ public class DocumentResourceTest {
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .content(
-                        "<Opus Version=\"2.0\">" +
+                        "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
                                 "<DocumentId>4711</DocumentId>" +
                                 "<PersonAuthor>" +
@@ -201,17 +201,17 @@ public class DocumentResourceTest {
         mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
-                .content("<Opus Version=\"1.0-wrong\"/>"))
+                .content("<Opus version=\"1.0-wrong\"/>"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     public void getQucosaBadRequestResponseOnInformationMissingNode() throws Exception {
         for (String content : new String[]{
-                "<Opus Version=\"2.0\"/>", // missing Opus_Document
-                "<Opus Version=\"2.0\"><Opus_Document/></Opus>", // missing PersonAuthor
-                "<Opus Version=\"2.0\"><Opus_Document><PersonAuthor><LastName/></PersonAuthor></Opus_Document></Opus>", // missing FirstName
-                "<Opus Version=\"2.0\"><Opus_Document><PersonAuthor><LastName/><FirstName/></PersonAuthor></Opus_Document></Opus>", // missing TitleMain
+                "<Opus version=\"2.0\"/>", // missing Opus_Document
+                "<Opus version=\"2.0\"><Opus_Document/></Opus>", // missing PersonAuthor
+                "<Opus version=\"2.0\"><Opus_Document><PersonAuthor><LastName/></PersonAuthor></Opus_Document></Opus>", // missing FirstName
+                "<Opus version=\"2.0\"><Opus_Document><PersonAuthor><LastName/><FirstName/></PersonAuthor></Opus_Document></Opus>", // missing TitleMain
         }) {
             mockMvc.perform(post(DOCUMENT_POST_URL)
                     .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -230,7 +230,7 @@ public class DocumentResourceTest {
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .content(
-                        "<Opus Version=\"2.0\">" +
+                        "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
                                 "<PersonAuthor>" +
                                 "<LastName>Shakespear</LastName>" +
@@ -252,7 +252,7 @@ public class DocumentResourceTest {
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .content(
-                        "<Opus Version=\"2.0\">" +
+                        "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
                                 "<DocumentId>4711</DocumentId>" +
                                 "<PersonAuthor>" +

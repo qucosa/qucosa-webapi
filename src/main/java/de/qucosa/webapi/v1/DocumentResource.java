@@ -232,7 +232,7 @@ class DocumentResource {
     }
 
     private void assertBasicDocumentProperties(Document qucosaDocument) throws Exception {
-        assertXPathNodeExists("/Opus[@Version='2.0']", "No Opus node with version '2.0'.", qucosaDocument);
+        assertXPathNodeExists("/Opus[@version='2.0']", "No Opus node with version '2.0'.", qucosaDocument);
         assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", qucosaDocument);
         assertXPathNodeExists("/Opus/Opus_Document/PersonAuthor[1]/LastName", "No PersonAuthor node with LastName node found.", qucosaDocument);
         assertXPathNodeExists("/Opus/Opus_Document/PersonAuthor[1]/FirstName", "No PersonAuthor node with FirstName node found.", qucosaDocument);
