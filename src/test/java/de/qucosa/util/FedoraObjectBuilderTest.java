@@ -42,6 +42,8 @@ public class FedoraObjectBuilderTest {
         prefixMap.put("fox", "info:fedora/fedora-system:def/foxml#");
         prefixMap.put("rel", "info:fedora/fedora-system:def/relations-external#");
         prefixMap.put("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+        prefixMap.put("oai", "http://www.openarchives.org/OAI/2.0/oai_dc/");
+        prefixMap.put("ns", "http://purl.org/dc/elements/1.1/");
         XMLUnit.setXpathNamespaceContext(new SimpleNamespaceContext(prefixMap));
     }
 
@@ -49,7 +51,7 @@ public class FedoraObjectBuilderTest {
     public void buildDocument() throws IOException, SAXException, ParserConfigurationException {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
         fob.pid("qucosa:4711");
-        fob.urn("urn:de:slub-dresden:qucosa:4711");
+        fob.addUrn("urn:de:slub-dresden:qucosa:4711");
         fob.label("An arbitrarily migrated Qucosa Document");
         fob.title("The Title of an arbitrarily migrated Qucosa Document");
         fob.ownerId("slub");
@@ -136,6 +138,26 @@ public class FedoraObjectBuilderTest {
 
         XMLAssert.assertXpathEvaluatesTo("I", "//fox:objectProperties/fox:property[@NAME='"
                 + INFO_FEDORA_FEDORA_SYSTEM_DEF_MODEL_STATE + "']/@VALUE", testDocument);
+    }
+
+    @Test
+    public void documentWithURN() throws Exception {
+        FedoraObjectBuilder fob = new FedoraObjectBuilder();
+        fob.addUrn("urn:foo:bla-4711");
+        Document testDocument = XMLUnit.buildTestDocument(serialize(fob));
+
+        XMLAssert.assertXpathEvaluatesTo("urn:foo:bla-4711", "//oai:dc/ns:identifier", testDocument);
+    }
+
+    @Test
+    public void documentWithMultipleURNs() throws Exception {
+        FedoraObjectBuilder fob = new FedoraObjectBuilder();
+        fob.addUrn("urn:foo:bla-4711");
+        fob.addUrn("urn:foo:blub-0815");
+        Document testDocument = XMLUnit.buildTestDocument(serialize(fob));
+
+        XMLAssert.assertXpathEvaluatesTo("urn:foo:bla-4711", "//oai:dc/ns:identifier[1]", testDocument);
+        XMLAssert.assertXpathEvaluatesTo("urn:foo:blub-0815", "//oai:dc/ns:identifier[2]", testDocument);
     }
 
     private String serialize(FedoraObjectBuilder fob) throws ParserConfigurationException, IOException {

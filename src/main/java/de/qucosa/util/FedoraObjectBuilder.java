@@ -27,13 +27,15 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.xml.parsers.ParserConfigurationException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class FedoraObjectBuilder {
 
     private String pid;
     private String label;
     private String ownerId;
-    private String urn;
+    private Set<String> URNs = new HashSet<>();
     private String parentCollectionPid;
     private Document qucosaXmlDocument = null;
     private String constituentPid;
@@ -66,8 +68,8 @@ public class FedoraObjectBuilder {
 
     }
 
-    public FedoraObjectBuilder urn(String urn) {
-        this.urn = urn;
+    public FedoraObjectBuilder addUrn(String urn) {
+        this.URNs.add(urn);
         return this;
     }
 
@@ -184,8 +186,12 @@ public class FedoraObjectBuilder {
         OaiDcType dc = dcDocument.addNewDc();
         ElementType t = dc.addNewTitle();
         t.setStringValue(title);
-        ElementType id = dc.addNewIdentifier();
-        id.setStringValue(urn);
+
+        for(String urn : URNs) {
+            ElementType id = dc.addNewIdentifier();
+            id.setStringValue(urn);
+        }
+
         return dcDocument;
     }
 

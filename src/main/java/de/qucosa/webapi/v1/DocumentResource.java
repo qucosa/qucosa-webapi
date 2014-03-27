@@ -32,6 +32,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -161,19 +162,21 @@ class DocumentResource {
 
         DigitalObjectDocument dod = buildDocument(qucosaDocument);
 
-        if (log.isDebugEnabled()) {
-            try {
-                dod.save(System.out, new XmlOptions().setSavePrettyPrint());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        if (log.isDebugEnabled()) dumpToStdOut(dod);
 
         String pid = fedoraRepository.ingest(dod);
 
         String id = pid.substring("qucosa:".length() + 1);
         String okResponse = getDocumentCreatedResponse(id);
         return new ResponseEntity<>(okResponse, HttpStatus.CREATED);
+    }
+
+    private void dumpToStdOut(DigitalObjectDocument dod) {
+        try {
+            dod.save(System.out, new XmlOptions().setSavePrettyPrint());
+        } catch (IOException e) {
+            log.warn(e.getMessage());
+        }
     }
 
     @ExceptionHandler(BadQucosaDocumentException.class)
@@ -225,11 +228,10 @@ class DocumentResource {
         String title = xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc);
         if (!title.isEmpty()) fob.title(title);
 
-
-        // TODO Add all available URNs generate one after ingest
-        // TODO Build URN class with special NISS handling for NID="nbn:de" including check digit
-        String urn = xPath.evaluate("/Opus/Opus_Document/IdentifierUrn[1]/Value", qucosaDoc);
-        if (!urn.isEmpty()) fob.urn(urn);
+        NodeList urnNodes = (NodeList) xPath.evaluate("/Opus/Opus_Document/IdentifierUrn/Value", qucosaDoc, XPathConstants.NODESET);
+        for (int i = 0; i < urnNodes.getLength(); i++) {
+            fob.addUrn(urnNodes.item(i).getNodeValue());
+        }
 
         fob.ownerId("qucosa");
         fob.parentCollectionPid("qucosa:qucosa");
