@@ -29,6 +29,7 @@ import com.yourmediashelf.fedora.client.response.IngestResponse;
 import com.yourmediashelf.fedora.client.response.RiSearchResponse;
 import de.qucosa.util.Tuple;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.io.BufferedReader;
@@ -38,7 +39,6 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-@Repository
 public class FedoraRepository {
 
     public static final String RELATION_DERIVATIVE = "isDerivationOf";

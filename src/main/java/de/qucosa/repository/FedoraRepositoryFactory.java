@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-class FedoraRepositoryConnectionFactory {
+class FedoraRepositoryFactory {
 
     private static final Map<FedoraCredentials, FedoraRepository> clients = new HashMap<>();
 
