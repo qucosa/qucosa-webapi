@@ -177,7 +177,7 @@ class DocumentResource {
     }
 
     @ExceptionHandler(BadQucosaDocumentException.class)
-    public ResponseEntity generalExceptionHandler(BadQucosaDocumentException ex) throws XMLStreamException {
+    public ResponseEntity qucosaDocumentExceptionHandler(BadQucosaDocumentException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         log.debug(ex.getXml());
         return errorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
