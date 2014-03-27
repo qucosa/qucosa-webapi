@@ -19,18 +19,10 @@ package de.qucosa.repository;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
-import com.yourmediashelf.fedora.client.request.GetNextPID;
-import com.yourmediashelf.fedora.client.request.Ingest;
-import com.yourmediashelf.fedora.client.request.RiSearch;
-import com.yourmediashelf.fedora.client.response.FedoraResponse;
-import com.yourmediashelf.fedora.client.response.GetNextPIDResponse;
-import com.yourmediashelf.fedora.client.response.IngestResponse;
-import com.yourmediashelf.fedora.client.response.RiSearchResponse;
+import com.yourmediashelf.fedora.client.request.*;
+import com.yourmediashelf.fedora.client.response.*;
 import de.qucosa.util.Tuple;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -134,6 +126,11 @@ public class FedoraRepository {
         ingest.content(ingestObject.newInputStream());
         IngestResponse ir = ingest.execute(fedoraClient);
         return ir.getPid();
+    }
+
+    public boolean hasObject(String pid) throws FedoraClientException {
+        FindObjectsResponse findObjectsResponse = new FindObjects().query("pid%3D" + pid).pid().execute(fedoraClient);
+        return (findObjectsResponse.getPids().size() > 0);
     }
 
     private void closeIfNotNull(FedoraResponse fr) {

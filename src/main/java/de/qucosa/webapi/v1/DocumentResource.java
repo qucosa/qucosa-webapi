@@ -162,6 +162,7 @@ class DocumentResource {
 
         FedoraObjectBuilder fob = buildDocument(qucosaDocument);
         String pid = ensurePID(fob);
+        assertPidIsNotUsed(pid);
         ensureURN(nis1, nis2, niss, fob, pid);
 
         DigitalObjectDocument dod = fob.build();
@@ -182,6 +183,12 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ResourceConflictException.class)
+    public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
+        log.error(ex.getMessage());
+        return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
     private void ensureURN(String nis1, String nis2, String niss, FedoraObjectBuilder fob, String pid) {
         if (!hasURN(fob)) {
             // TODO Construct URN according to DNB rules using nis1, nis2 and niss
@@ -199,6 +206,13 @@ class DocumentResource {
             fob.pid(pid);
         }
         return pid;
+    }
+
+    private void assertPidIsNotUsed(String pid) throws ResourceConflictException, FedoraClientException {
+        if (fedoraRepository.hasObject(pid)) {
+            String qucosaId = pid.substring("qucosa:".length());
+            throw new ResourceConflictException("Document id " + qucosaId + " already used.");
+        }
     }
 
     private boolean hasURN(FedoraObjectBuilder fob) {

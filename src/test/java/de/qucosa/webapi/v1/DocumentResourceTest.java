@@ -270,4 +270,25 @@ public class DocumentResourceTest {
         assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-4711", "//ns:identifier", argCapt.getValue().getDigitalObject().xmlText());
     }
 
+    @Test
+    public void errorIfPidIsAlreadyTaken() throws Exception {
+        when(fedoraRepository.hasObject(anyString())).thenReturn(true);
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isConflict());
+    }
+
 }
