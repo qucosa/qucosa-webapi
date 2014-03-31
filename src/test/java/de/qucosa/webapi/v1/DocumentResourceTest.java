@@ -283,6 +283,7 @@ public class DocumentResourceTest {
         ArgumentCaptor<DigitalObjectDocument> argCapt = ArgumentCaptor.forClass(DigitalObjectDocument.class);
         verify(fedoraRepository).ingest(argCapt.capture());
         assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-4711", "//ns:identifier", argCapt.getValue().getDigitalObject().xmlText());
+        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-4711", "//Opus_Document/IdentifierUrn/Value", argCapt.getValue().getDigitalObject().xmlText());
     }
 
     @Test

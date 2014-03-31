@@ -19,6 +19,7 @@ package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.repository.FedoraRepository;
+import de.qucosa.util.DnbUrnURIBuilder;
 import de.qucosa.util.FedoraObjectBuilder;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
@@ -32,7 +33,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
 import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -52,6 +55,8 @@ import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
 @Controller
@@ -150,9 +155,9 @@ class DocumentResource {
             consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
     @ResponseBody
     public ResponseEntity<String> addDocument(
-            @RequestParam(value = "nis1", required = false) String nis1,
-            @RequestParam(value = "nis2", required = false) String nis2,
-            @RequestParam(value = "niss", required = false) String niss,
+            @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,
+            @RequestParam(value = "nis2", required = false) String libraryIdentifier,
+            @RequestParam(value = "niss", required = false) String prefix,
             @RequestBody String body) throws Exception {
 
         Document qucosaDocument = DocumentBuilderFactory.newInstance()
@@ -161,18 +166,19 @@ class DocumentResource {
         assertBasicDocumentProperties(qucosaDocument);
 
         FedoraObjectBuilder fob = buildDocument(qucosaDocument);
+
         String pid = ensurePID(fob);
         assertPidIsNotUsed(pid);
+        String id = pid.substring("qucosa:".length());
 
-        ensureURN(nis1, nis2, niss, fob, pid, qucosaDocument);
+        ensureURN(libraryNetworkAbbreviation, libraryIdentifier, prefix, fob, id, qucosaDocument);
 
         DigitalObjectDocument dod = fob.build();
+        if (log.isDebugEnabled()) {
+            dumpToStdOut(dod);
+        }
+        fedoraRepository.ingest(dod);
 
-        if (log.isDebugEnabled()) dumpToStdOut(dod);
-
-        pid = fedoraRepository.ingest(dod);
-
-        String id = pid.substring("qucosa:".length());
         String okResponse = getDocumentCreatedResponse(id);
         return new ResponseEntity<>(okResponse, HttpStatus.CREATED);
     }
@@ -190,16 +196,31 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    private void ensureURN(String nis1, String nis2, String niss, FedoraObjectBuilder fob, String pid, Document qucosaDocument) throws BadQucosaDocumentException {
+    private void ensureURN(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, FedoraObjectBuilder fob, String pid, Document qucosaDocument) throws BadQucosaDocumentException, URISyntaxException {
         if (!hasURN(fob)) {
-            if (notNullNotEmpty(nis1) && notNullNotEmpty(nis2) && notNullNotEmpty(niss)) {
-                // TODO Construct URN according to DNB rules using nis1, nis2 and niss
-                String nbnurn = String.format("urn:nbn:de:%s:%s-%s-%s", nis1, nis2, niss, pid.substring("qucosa:".length()));
-                fob.addURN(nbnurn);
+            if (notNullNotEmpty(libraryNetworkAbbreviation) && notNullNotEmpty(libraryIdentifier) && notNullNotEmpty(prefix)) {
+                URI nbnurn = new DnbUrnURIBuilder()
+                        .libraryNetworkAbbriviation(libraryNetworkAbbreviation)
+                        .libraryIdentifier(libraryIdentifier)
+                        .subNamespacePrefix(prefix)
+                        .uniqueNumber(pid)
+                        .build();
+                String urnString = nbnurn.toASCIIString();
+                fob.addURN(urnString);
+                addIdentifierUrn(qucosaDocument, urnString);
             } else {
                 throw new BadQucosaDocumentException("Document doesn't have IdentifierUrn node but namespace query parameter are missing. Cannot generate URN!", qucosaDocument);
             }
         }
+    }
+
+    private void addIdentifierUrn(Document qucosaDocument, String urn) {
+        Element elIdentifierUrn = qucosaDocument.createElement("IdentifierUrn");
+        Element elValue = qucosaDocument.createElement("Value");
+        Text elText = qucosaDocument.createTextNode(urn);
+        elValue.appendChild(elText);
+        elIdentifierUrn.appendChild(elValue);
+        qucosaDocument.getElementsByTagName("Opus_Document").item(0).appendChild(elIdentifierUrn);
     }
 
     private boolean notNullNotEmpty(String s) {
