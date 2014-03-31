@@ -61,6 +61,7 @@ public class DocumentResourceTest {
     private static final Map<String, String> NS =
             Collections.singletonMap(SearchResource.XLINK_NAMESPACE_PREFIX, SearchResource.XLINK_NAMESPACE);
     private static final String DOCUMENT_POST_URL = "/document?nis1=bsz&nis2=15&niss=qucosa";
+    private static final String DOCUMENT_POST_URL_WITHOUT_PARAMS = "/document";
     private static final String DEFAULT_URN_PREFIX = "urn:nbn:de:bsz:15-qucosa";
     @Autowired
     private FedoraRepository fedoraRepository;
@@ -147,11 +148,25 @@ public class DocumentResourceTest {
     }
 
     @Test
-    public void returnsBadRequestOnPostWithoutURNParameters() throws Exception {
-        mockMvc.perform(post("/document")
+    public void postWithoutURNParametersPossibleWhenContentHasUrnNode() throws Exception {
+        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
+        mockMvc.perform(post(DOCUMENT_POST_URL_WITHOUT_PARAMS)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
-                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml")))
-                .andExpect(status().isBadRequest());
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
     }
 
     @Test

@@ -150,9 +150,9 @@ class DocumentResource {
             consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
     @ResponseBody
     public ResponseEntity<String> addDocument(
-            @RequestParam("nis1") String nis1,
-            @RequestParam("nis2") String nis2,
-            @RequestParam("niss") String niss,
+            @RequestParam(value = "nis1", required = false) String nis1,
+            @RequestParam(value = "nis2", required = false) String nis2,
+            @RequestParam(value = "niss", required = false) String niss,
             @RequestBody String body) throws Exception {
 
         Document qucosaDocument = DocumentBuilderFactory.newInstance()
@@ -163,7 +163,8 @@ class DocumentResource {
         FedoraObjectBuilder fob = buildDocument(qucosaDocument);
         String pid = ensurePID(fob);
         assertPidIsNotUsed(pid);
-        ensureURN(nis1, nis2, niss, fob, pid);
+
+        ensureURN(nis1, nis2, niss, fob, pid, qucosaDocument);
 
         DigitalObjectDocument dod = fob.build();
 
@@ -189,12 +190,20 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    private void ensureURN(String nis1, String nis2, String niss, FedoraObjectBuilder fob, String pid) {
+    private void ensureURN(String nis1, String nis2, String niss, FedoraObjectBuilder fob, String pid, Document qucosaDocument) throws BadQucosaDocumentException {
         if (!hasURN(fob)) {
-            // TODO Construct URN according to DNB rules using nis1, nis2 and niss
-            String nbnurn = String.format("urn:nbn:de:%s:%s-%s-%s", nis1, nis2, niss, pid.substring("qucosa:".length()));
-            fob.addURN(nbnurn);
+            if (notNullNotEmpty(nis1) && notNullNotEmpty(nis2) && notNullNotEmpty(niss)) {
+                // TODO Construct URN according to DNB rules using nis1, nis2 and niss
+                String nbnurn = String.format("urn:nbn:de:%s:%s-%s-%s", nis1, nis2, niss, pid.substring("qucosa:".length()));
+                fob.addURN(nbnurn);
+            } else {
+                throw new BadQucosaDocumentException("Document doesn't have IdentifierUrn node but namespace query parameter are missing. Cannot generate URN!", qucosaDocument);
+            }
         }
+    }
+
+    private boolean notNullNotEmpty(String s) {
+        return ((s != null) && (!s.isEmpty()));
     }
 
     private String ensurePID(FedoraObjectBuilder fob) throws FedoraClientException {
