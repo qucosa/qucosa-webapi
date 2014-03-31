@@ -31,11 +31,6 @@ public class BadQucosaDocumentException extends Exception {
     private final Document document;
     private String serializedDocument = null;
 
-    public BadQucosaDocumentException(Document document) {
-        super("Invalid document data");
-        this.document = document;
-    }
-
     public BadQucosaDocumentException(String msg, Document document) {
         super(msg);
         this.document = document;
