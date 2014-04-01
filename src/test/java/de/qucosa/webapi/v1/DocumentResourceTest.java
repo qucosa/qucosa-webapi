@@ -149,7 +149,6 @@ public class DocumentResourceTest {
 
     @Test
     public void postWithoutURNParametersPossibleWhenContentHasUrnNode() throws Exception {
-        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
         mockMvc.perform(post(DOCUMENT_POST_URL_WITHOUT_PARAMS)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -179,8 +178,6 @@ public class DocumentResourceTest {
 
     @Test
     public void postResponseDocumentHasLinkAndIdAttributes() throws Exception {
-        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
-
         mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -239,8 +236,6 @@ public class DocumentResourceTest {
     @Test
     public void documentWithoutPIDGetsOne() throws Exception {
         when(fedoraRepository.mintPid("qucosa")).thenReturn("qucosa:4711");
-        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
-
         mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -262,7 +257,6 @@ public class DocumentResourceTest {
 
     @Test
     public void documentWithoutURNGetsOne() throws Exception {
-        when(fedoraRepository.ingest((DigitalObjectDocument) anyObject())).thenReturn("qucosa:4711");
         mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
