@@ -22,6 +22,7 @@ import java.net.URISyntaxException;
 
 public class DnbUrnURIBuilder {
 
+    public static final String SCHEME = "urn:nbn:de";
     private String lna;
     private String lid;
     private String snp;
@@ -48,18 +49,13 @@ public class DnbUrnURIBuilder {
     }
 
     public URI build() throws URISyntaxException {
-        return new URI(
-                new StringBuilder()
-                        .append("urn:nbn:de:")
-                        .append(lna)
-                        .append(':')
-                        .append(lid)
-                        .append('-')
-                        .append(snp)
-                        .append('-')
-                        .append(un)
-                        .toString()
-        );
+        String schemeSpecificPart = new StringBuilder()
+                .append(lna).append(':')
+                .append(lid).append('-')
+                .append(snp).append('-')
+                .append(un)
+                .toString();
+        return new URI(SCHEME, schemeSpecificPart, null);
     }
 
 }

@@ -45,7 +45,8 @@ import java.util.Map;
 
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -253,6 +254,30 @@ public class DocumentResourceTest {
                 .andExpect(status().isCreated())
                 .andExpect(xpath("/Opus/Opus_Document/@id").exists())
                 .andExpect(xpath("/Opus/Opus_Document/@id").string("4711"));
+    }
+
+    @Test
+    public void generatedURNIsEncodedCorrectly() throws Exception {
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>123%456 7</DocumentId>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<DigitalObjectDocument> argCapt = ArgumentCaptor.forClass(DigitalObjectDocument.class);
+        verify(fedoraRepository).ingest(argCapt.capture());
+        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-123%25456%207", "//ns:identifier", argCapt.getValue().getDigitalObject().xmlText());
     }
 
     @Test
