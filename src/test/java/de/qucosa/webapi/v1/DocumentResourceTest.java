@@ -264,7 +264,7 @@ public class DocumentResourceTest {
                 .content(
                         "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
-                                "<DocumentId>123%456 7</DocumentId>" +
+                                "<DocumentId>123-456.7</DocumentId>" +
                                 "<PersonAuthor>" +
                                 "<LastName>Shakespear</LastName>" +
                                 "<FirstName>William</FirstName>" +
@@ -277,7 +277,7 @@ public class DocumentResourceTest {
 
         ArgumentCaptor<DigitalObjectDocument> argCapt = ArgumentCaptor.forClass(DigitalObjectDocument.class);
         verify(fedoraRepository).ingest(argCapt.capture());
-        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-123%25456%207", "//ns:identifier", argCapt.getValue().getDigitalObject().xmlText());
+        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-123-456.7", "//ns:identifier", argCapt.getValue().getDigitalObject().xmlText());
     }
 
     @Test

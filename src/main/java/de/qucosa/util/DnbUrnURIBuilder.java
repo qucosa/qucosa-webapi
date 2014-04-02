@@ -19,31 +19,37 @@ package de.qucosa.util;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.regex.Pattern;
 
 public class DnbUrnURIBuilder {
 
     public static final String SCHEME = "urn:nbn:de";
+    private static final Pattern allowedChars = Pattern.compile("^[a-z0-9\\-\\.]+$");
     private String lna;
     private String lid;
     private String snp;
     private String un;
 
-    public DnbUrnURIBuilder libraryNetworkAbbriviation(String s) {
+    public DnbUrnURIBuilder libraryNetworkAbbriviation(String s) throws URISyntaxException {
+        assertAllowedCharacters(s, "Library Network Abbriviation argument");
         this.lna = s;
         return this;
     }
 
-    public DnbUrnURIBuilder libraryIdentifier(String s) {
+    public DnbUrnURIBuilder libraryIdentifier(String s) throws URISyntaxException {
+        assertAllowedCharacters(s, "Library Identifier argument");
         this.lid = s;
         return this;
     }
 
-    public DnbUrnURIBuilder subNamespacePrefix(String s) {
+    public DnbUrnURIBuilder subNamespacePrefix(String s) throws URISyntaxException {
+        assertAllowedCharacters(s, "Library Sub Namespace Prefix argument");
         this.snp = s;
         return this;
     }
 
-    public DnbUrnURIBuilder uniqueNumber(String s) {
+    public DnbUrnURIBuilder uniqueNumber(String s) throws URISyntaxException {
+        assertAllowedCharacters(s, "Library Unique Number argument");
         this.un = s;
         return this;
     }
@@ -56,6 +62,12 @@ public class DnbUrnURIBuilder {
                 .append(un)
                 .toString();
         return new URI(SCHEME, schemeSpecificPart, null);
+    }
+
+    private void assertAllowedCharacters(String s, String parameterName) throws URISyntaxException {
+        if (!allowedChars.matcher(s).matches()) {
+            throw new URISyntaxException(s, "Unallowed characters in " + parameterName + ".");
+        }
     }
 
 }
