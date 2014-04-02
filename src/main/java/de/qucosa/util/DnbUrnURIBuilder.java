@@ -30,8 +30,8 @@ public class DnbUrnURIBuilder {
     private String snp;
     private String un;
 
-    public DnbUrnURIBuilder libraryNetworkAbbriviation(String s) throws URISyntaxException {
-        assertAllowedCharacters(s, "Library Network Abbriviation argument");
+    public DnbUrnURIBuilder libraryNetworkAbbreviation(String s) throws URISyntaxException {
+        assertAllowedCharacters(s, "Library Network Abbreviation argument");
         this.lna = s;
         return this;
     }
@@ -55,6 +55,10 @@ public class DnbUrnURIBuilder {
     }
 
     public URI build() throws URISyntaxException {
+        assertNotNullNotEmpty("Library Network Abbreviation", lna);
+        assertNotNullNotEmpty("Library Identifier", lid);
+        assertNotNullNotEmpty("Sub Namespace", snp);
+        assertNotNullNotEmpty("Unique Number", un);
         String schemeSpecificPart = new StringBuilder()
                 .append(lna).append(':')
                 .append(lid).append('-')
@@ -62,6 +66,12 @@ public class DnbUrnURIBuilder {
                 .append(un)
                 .toString();
         return new URI(SCHEME, schemeSpecificPart, null);
+    }
+
+    private void assertNotNullNotEmpty(String part, String s) throws URISyntaxException {
+        if ((s == null) || (s.isEmpty())) {
+            throw new URISyntaxException(String.valueOf(s), part + " cannot be null or empty.");
+        }
     }
 
     private void assertAllowedCharacters(String s, String parameterName) throws URISyntaxException {

@@ -19,15 +19,18 @@ package de.qucosa.util;
 
 import org.junit.Test;
 
+import java.net.URI;
 import java.net.URISyntaxException;
+
+import static org.junit.Assert.assertTrue;
 
 public class DnbUrnURIBuilderTest {
 
     // TODO Checksum
 
     @Test(expected = URISyntaxException.class)
-    public void exceptionOnUpperCaseLibraryNetworkAbbriviation() throws URISyntaxException {
-        new DnbUrnURIBuilder().libraryNetworkAbbriviation("BSZ");
+    public void exceptionOnUpperCaseLibraryNetworkAbbreviation() throws URISyntaxException {
+        new DnbUrnURIBuilder().libraryNetworkAbbreviation("BSZ");
     }
 
     @Test(expected = URISyntaxException.class)
@@ -43,6 +46,11 @@ public class DnbUrnURIBuilderTest {
     @Test(expected = URISyntaxException.class)
     public void exceptionOnUpperCaseUniqueNumber() throws URISyntaxException {
         new DnbUrnURIBuilder().uniqueNumber("11,22");
+    }
+
+    @Test(expected = URISyntaxException.class)
+    public void exceptionOnEmptyURNArguments() throws URISyntaxException {
+        new DnbUrnURIBuilder().build();
     }
 
 }

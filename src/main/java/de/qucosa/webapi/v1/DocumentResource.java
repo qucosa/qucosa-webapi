@@ -200,7 +200,7 @@ class DocumentResource {
         if (!hasURN(fob)) {
             if (notNullNotEmpty(libraryNetworkAbbreviation) && notNullNotEmpty(libraryIdentifier) && notNullNotEmpty(prefix)) {
                 URI nbnurn = new DnbUrnURIBuilder()
-                        .libraryNetworkAbbriviation(libraryNetworkAbbreviation)
+                        .libraryNetworkAbbreviation(libraryNetworkAbbreviation)
                         .libraryIdentifier(libraryIdentifier)
                         .subNamespacePrefix(prefix)
                         .uniqueNumber(pid)
