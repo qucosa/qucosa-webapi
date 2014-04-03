@@ -19,12 +19,58 @@ package de.qucosa.util;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 public class DnbUrnURIBuilder {
 
     public static final String SCHEME = "urn:nbn:de";
     private static final Pattern allowedChars = Pattern.compile("^[a-z0-9\\-\\.]+$");
+    private static final int URN_NBN_DE_PART_CHECKSUM = 801;
+    private static final HashMap<Character, Integer> CHAR_MAP = new HashMap<Character, Integer>() {{
+        put('0', 1);
+        put('1', 2);
+        put('2', 3);
+        put('3', 4);
+        put('4', 5);
+        put('5', 6);
+        put('6', 7);
+        put('7', 8);
+        put('8', 9);
+        put('9', 41);
+        put('a', 18);
+        put('b', 14);
+        put('c', 19);
+        put('d', 15);
+        put('e', 16);
+        put('f', 21);
+        put('g', 22);
+        put('h', 23);
+        put('i', 24);
+        put('j', 25);
+        put('k', 42);
+        put('l', 26);
+        put('m', 27);
+        put('n', 13);
+        put('o', 28);
+        put('p', 29);
+        put('q', 31);
+        put('r', 12);
+        put('s', 32);
+        put('t', 33);
+        put('u', 11);
+        put('v', 34);
+        put('w', 35);
+        put('x', 36);
+        put('y', 37);
+        put('z', 38);
+        put('+', 49);
+        put(':', 17);
+        put('-', 39);
+        put('/', 45);
+        put('_', 43);
+        put('.', 47);
+    }};
     private String lna;
     private String lid;
     private String snp;
@@ -59,13 +105,36 @@ public class DnbUrnURIBuilder {
         assertNotNullNotEmpty("Library Identifier", lid);
         assertNotNullNotEmpty("Sub Namespace", snp);
         assertNotNullNotEmpty("Unique Number", un);
-        String schemeSpecificPart = new StringBuilder()
+        String nbnurn = new StringBuilder()
                 .append(lna).append(':')
                 .append(lid).append('-')
                 .append(snp).append('-')
-                .append(un)
-                .toString();
-        return new URI(SCHEME, schemeSpecificPart, null);
+                .append(un).toString();
+        return new URI(SCHEME, nbnurn + getCheckDigit(nbnurn), null);
+    }
+
+    /**
+     * {@see http://www.persistent-identifier.de/?link=316}
+     * {@see http://nbn-resolving.de/nbncheckdigit.php}
+     *
+     * @param urn
+     * @return
+     */
+    private String getCheckDigit(final String urn) {
+        int sum = URN_NBN_DE_PART_CHECKSUM;
+        int index = 22;
+        int charcode = 0;
+        for (Character c : urn.toCharArray()) {
+            charcode = CHAR_MAP.get(c);
+            if (charcode < 10) {
+                sum += charcode * ++index;
+            } else {
+                sum += (charcode / 10 * ++index) + (charcode % 10 * ++index);
+            }
+        }
+        int lastDigit = ((charcode < 10) ? (charcode) : (charcode / 10));
+        int checkDigit = (sum / lastDigit) % 10;
+        return String.valueOf(checkDigit);
     }
 
     private void assertNotNullNotEmpty(String part, String s) throws URISyntaxException {

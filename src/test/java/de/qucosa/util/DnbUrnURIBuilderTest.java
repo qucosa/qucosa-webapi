@@ -22,7 +22,7 @@ import org.junit.Test;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class DnbUrnURIBuilderTest {
 
@@ -51,6 +51,35 @@ public class DnbUrnURIBuilderTest {
     @Test(expected = URISyntaxException.class)
     public void exceptionOnEmptyURNArguments() throws URISyntaxException {
         new DnbUrnURIBuilder().build();
+    }
+
+    @Test
+    public void generateCorrectCheckDigit() throws URISyntaxException {
+        for (String[] el : new String[][]{
+                {"8765", "0"},
+                {"1913", "1"},
+                {"6543", "2"},
+                {"1234", "3"},
+                {"7000", "4"},
+                {"4567", "5"},
+                {"4028", "6"},
+                {"3456", "7"},
+                {"4711", "8"},
+                {"2345", "9"},
+        }) {
+            URI urn = new DnbUrnURIBuilder()
+                    .libraryNetworkAbbreviation("swb")
+                    .libraryIdentifier("14")
+                    .subNamespacePrefix("opus")
+                    .uniqueNumber(el[0])
+                    .build();
+            String asciiUrn = urn.toASCIIString();
+
+            System.out.println(asciiUrn + " " + el[0] + " " + el[1]);
+
+            char checkDigit = asciiUrn.charAt(asciiUrn.length() - 1);
+            assertEquals("Incorrect check digit in URN " + asciiUrn, el[1], String.valueOf(checkDigit));
+        }
     }
 
 }
