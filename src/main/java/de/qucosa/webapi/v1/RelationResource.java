@@ -18,7 +18,7 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.repository.FedoraRepositoryConnection;
+import de.qucosa.repository.FedoraRepository;
 import de.qucosa.util.Tuple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -43,21 +43,21 @@ import java.util.List;
         "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
 class RelationResource {
 
-    final private FedoraRepositoryConnection fedoraRepositoryConnection;
+    final private FedoraRepository fedoraRepository;
 
     @Autowired
-    public RelationResource(FedoraRepositoryConnection fedoraRepositoryConnection) {
-        this.fedoraRepositoryConnection = fedoraRepositoryConnection;
+    public RelationResource(FedoraRepository fedoraRepository) {
+        this.fedoraRepository = fedoraRepository;
     }
 
     @RequestMapping(value = "/relation/urn/{URN}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> describeRelationships(@PathVariable String URN) throws XMLStreamException, IOException, FedoraClientException {
-        String pid = fedoraRepositoryConnection.getPIDByIdentifier(URN);
-        List<Tuple<String>> constituentPredecessorPids = fedoraRepositoryConnection.getPredecessorPIDs(pid, FedoraRepositoryConnection.RELATION_CONSTITUENT);
-        List<Tuple<String>> derivativePredecessorPIDs = fedoraRepositoryConnection.getPredecessorPIDs(pid, FedoraRepositoryConnection.RELATION_DERIVATIVE);
-        List<Tuple<String>> constituentSuccessorPids = fedoraRepositoryConnection.getSuccessorPIDs(pid, FedoraRepositoryConnection.RELATION_CONSTITUENT);
-        List<Tuple<String>> derivativeSuccessorPids = fedoraRepositoryConnection.getSuccessorPIDs(pid, FedoraRepositoryConnection.RELATION_DERIVATIVE);
+        String pid = fedoraRepository.getPIDByIdentifier(URN);
+        List<Tuple<String>> constituentPredecessorPids = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);
+        List<Tuple<String>> derivativePredecessorPIDs = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_DERIVATIVE);
+        List<Tuple<String>> constituentSuccessorPids = fedoraRepository.getSuccessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);
+        List<Tuple<String>> derivativeSuccessorPids = fedoraRepository.getSuccessorPIDs(pid, FedoraRepository.RELATION_DERIVATIVE);
 
         XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newFactory();
         StringWriter sw = new StringWriter();

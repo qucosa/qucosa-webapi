@@ -22,6 +22,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -34,6 +36,18 @@ class ResourceExceptionHandler {
     public ResponseEntity generalExceptionHandler(Exception ex) {
         log.error(ex);
         return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity missingParameterExceptionHandler(MissingServletRequestParameterException ex) {
+        log.error(ex);
+        return new ResponseEntity(HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity missingParameterExceptionHandler(HttpMediaTypeNotSupportedException ex) {
+        log.error(ex);
+        return new ResponseEntity(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
     @ExceptionHandler(FedoraClientException.class)

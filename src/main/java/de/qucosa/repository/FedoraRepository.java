@@ -19,11 +19,10 @@ package de.qucosa.repository;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
-import com.yourmediashelf.fedora.client.request.RiSearch;
-import com.yourmediashelf.fedora.client.response.FedoraResponse;
-import com.yourmediashelf.fedora.client.response.RiSearchResponse;
+import com.yourmediashelf.fedora.client.request.*;
+import com.yourmediashelf.fedora.client.response.*;
 import de.qucosa.util.Tuple;
+import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,13 +31,13 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FedoraRepositoryConnection {
+public class FedoraRepository {
 
     public static final String RELATION_DERIVATIVE = "isDerivationOf";
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
     private final FedoraClient fedoraClient;
 
-    public FedoraRepositoryConnection(FedoraClient fedoraClient) {
+    public FedoraRepository(FedoraClient fedoraClient) {
         this.fedoraClient = fedoraClient;
     }
 
@@ -114,6 +113,24 @@ public class FedoraRepositoryConnection {
             closeIfNotNull(riSearchResponse);
         }
         return result;
+    }
+
+    public String mintPid(String namespace) throws FedoraClientException {
+        GetNextPIDResponse response =
+                (GetNextPIDResponse) fedoraClient.execute(new GetNextPID().namespace(namespace));
+        return response.getPid();
+    }
+
+    public String ingest(DigitalObjectDocument ingestObject) throws FedoraClientException {
+        Ingest ingest = new Ingest();
+        ingest.content(ingestObject.newInputStream());
+        IngestResponse ir = ingest.execute(fedoraClient);
+        return ir.getPid();
+    }
+
+    public boolean hasObject(String pid) throws FedoraClientException {
+        FindObjectsResponse findObjectsResponse = new FindObjects().query("pid%3D" + pid).pid().execute(fedoraClient);
+        return (findObjectsResponse.getPids().size() > 0);
     }
 
     private void closeIfNotNull(FedoraResponse fr) {
