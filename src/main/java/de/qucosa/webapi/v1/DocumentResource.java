@@ -278,9 +278,10 @@ class DocumentResource {
     private void assertBasicDocumentProperties(Document qucosaDocument) throws Exception {
         assertXPathNodeExists("/Opus[@version='2.0']", "No Opus node with version '2.0'.", qucosaDocument);
         assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", qucosaDocument);
-        assertXPathNodeExists("/Opus/Opus_Document/PersonAuthor[1]/LastName", "No PersonAuthor node with LastName node found.", qucosaDocument);
-        assertXPathNodeExists("/Opus/Opus_Document/PersonAuthor[1]/FirstName", "No PersonAuthor node with FirstName node found.", qucosaDocument);
-        assertXPathNodeExists("/Opus/Opus_Document/TitleMain[1]/Value", "No PersonAuthor node with FirstName node found.", qucosaDocument);
+        if ((Boolean) xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]", qucosaDocument, XPathConstants.BOOLEAN)) {
+            assertXPathNodeExists("/Opus/Opus_Document/PersonAuthor[1]/LastName", "No PersonAuthor node with LastName node found.", qucosaDocument);
+        }
+        assertXPathNodeExists("/Opus/Opus_Document/TitleMain[1]/Value", "No TitleMain node found.", qucosaDocument);
     }
 
     private void assertXPathNodeExists(String xpath, String msg, Document doc) throws XPathExpressionException, BadQucosaDocumentException {

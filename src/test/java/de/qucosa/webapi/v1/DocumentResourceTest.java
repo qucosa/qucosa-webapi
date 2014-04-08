@@ -222,9 +222,8 @@ public class DocumentResourceTest {
     public void getQucosaBadRequestResponseOnInformationMissingNode() throws Exception {
         for (String content : new String[]{
                 "<Opus version=\"2.0\"/>", // missing Opus_Document
-                "<Opus version=\"2.0\"><Opus_Document/></Opus>", // missing PersonAuthor
-                "<Opus version=\"2.0\"><Opus_Document><PersonAuthor><LastName/></PersonAuthor></Opus_Document></Opus>", // missing FirstName
-                "<Opus version=\"2.0\"><Opus_Document><PersonAuthor><LastName/><FirstName/></PersonAuthor></Opus_Document></Opus>", // missing TitleMain
+                "<Opus version=\"2.0\"><Opus_Document/><PersonAuthor/></Opus>", // missing PersonAuthor/LastName
+                "<Opus version=\"2.0\"><Opus_Document><PersonAuthor><LastName/></PersonAuthor></Opus_Document></Opus>", // missing TitleMain
         }) {
             mockMvc.perform(post(DOCUMENT_POST_URL)
                     .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -303,6 +302,22 @@ public class DocumentResourceTest {
         verify(fedoraRepository).ingest(argCapt.capture());
         assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-47118", "//ns:identifier", argCapt.getValue().getDigitalObject().xmlText());
         assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-47118", "//Opus_Document/IdentifierUrn/Value", argCapt.getValue().getDigitalObject().xmlText());
+    }
+
+    @Test
+    public void handlesDocumentWithoutPersonAuthor() throws Exception {
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
     }
 
     @Test
