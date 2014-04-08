@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (C) 2013 SLUB Dresden
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <bean id="urnConfiguration-1" class="de.qucosa.webapi.v1.URNConfiguration">
+        <constructor-arg index="0" value="bsz"/>
+        <constructor-arg index="1" value="15"/>
+        <constructor-arg index="2" value="qucosa"/>
+    </bean>
+
+    <bean id="urnConfiguration-2" class="de.qucosa.webapi.v1.URNConfiguration">
+        <constructor-arg index="0" value="swb"/>
+        <constructor-arg index="1" value="14"/>
+        <constructor-arg index="2" value="qucosa"/>
+    </bean>
+
+    <bean id="urnConfigurations" class="de.qucosa.webapi.v1.URNConfigurationMap">
+        <constructor-arg>
+            <map>
+                <entry key="ROLE_USER" value-ref="urnConfiguration-1"/>
+                <entry key="ROLE_ADMIN" value-ref="urnConfiguration-2"/>
+            </map>
+        </constructor-arg>
+    </bean>
+
+</beans>

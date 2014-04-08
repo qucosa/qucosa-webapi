@@ -341,4 +341,20 @@ public class DocumentResourceTest {
                 .andExpect(status().isConflict());
     }
 
+    @Test
+    public void usesURNConfigurationBeanIfPresent() throws Exception {
+        mockMvc.perform(post(DOCUMENT_POST_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+    }
+
 }

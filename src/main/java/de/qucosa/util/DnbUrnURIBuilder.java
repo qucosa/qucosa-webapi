@@ -17,6 +17,8 @@
 
 package de.qucosa.util;
 
+import de.qucosa.webapi.v1.URNConfiguration;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -111,6 +113,13 @@ public class DnbUrnURIBuilder {
                 .append(snp).append('-')
                 .append(un).toString();
         return new URI(SCHEME, nbnurn + getCheckDigit(nbnurn), null);
+    }
+
+    public DnbUrnURIBuilder with(URNConfiguration urnConfiguration) throws URISyntaxException {
+        libraryNetworkAbbreviation(urnConfiguration.getLibraryNetworkAbbreviation());
+        libraryIdentifier(urnConfiguration.getLibraryIdentifier());
+        subNamespacePrefix(urnConfiguration.getPrefix());
+        return this;
     }
 
     /**

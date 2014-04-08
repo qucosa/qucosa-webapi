@@ -82,10 +82,13 @@ class DocumentResource {
     final private FedoraRepository fedoraRepository;
     @Autowired
     private HttpServletRequest httpServletRequest;
+    private URNConfiguration urnConfiguration;
 
     @Autowired
-    public DocumentResource(FedoraRepository fedoraRepository) throws ParserConfigurationException, TransformerConfigurationException {
+    public DocumentResource(FedoraRepository fedoraRepository, URNConfiguration urnConfiguration) throws ParserConfigurationException, TransformerConfigurationException {
         this.fedoraRepository = fedoraRepository;
+        this.urnConfiguration = urnConfiguration;
+
         documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 
         transformer = TransformerFactory.newInstance().newTransformer();
@@ -197,21 +200,27 @@ class DocumentResource {
     }
 
     private void ensureURN(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, FedoraObjectBuilder fob, String pid, Document qucosaDocument) throws BadQucosaDocumentException, URISyntaxException {
-        if (!hasURN(fob)) {
-            if (notNullNotEmpty(libraryNetworkAbbreviation) && notNullNotEmpty(libraryIdentifier) && notNullNotEmpty(prefix)) {
-                URI nbnurn = new DnbUrnURIBuilder()
-                        .libraryNetworkAbbreviation(libraryNetworkAbbreviation)
-                        .libraryIdentifier(libraryIdentifier)
-                        .subNamespacePrefix(prefix)
-                        .uniqueNumber(pid)
-                        .build();
-                String urnString = nbnurn.toASCIIString();
-                fob.addURN(urnString);
-                addIdentifierUrn(qucosaDocument, urnString);
-            } else {
+        if (hasURN(fob)) return;
+        URI nbnurn = new DnbUrnURIBuilder()
+                .with(getUrnConfiguration(libraryNetworkAbbreviation, libraryIdentifier, prefix, qucosaDocument))
+                .uniqueNumber(pid)
+                .build();
+        String urnString = nbnurn.toASCIIString();
+        fob.addURN(urnString);
+        addIdentifierUrn(qucosaDocument, urnString);
+    }
+
+    private URNConfiguration getUrnConfiguration(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, Document qucosaDocument) throws BadQucosaDocumentException {
+        URNConfiguration localUrnConfiguration;
+        if (notNullNotEmpty(libraryNetworkAbbreviation, libraryIdentifier, prefix)) {
+            localUrnConfiguration = new URNConfiguration(libraryNetworkAbbreviation, libraryIdentifier, prefix);
+        } else {
+            if (urnConfiguration == null) {
                 throw new BadQucosaDocumentException("Document doesn't have IdentifierUrn node but namespace query parameter are missing. Cannot generate URN!", qucosaDocument);
             }
+            localUrnConfiguration = urnConfiguration;
         }
+        return localUrnConfiguration;
     }
 
     private void addIdentifierUrn(Document qucosaDocument, String urn) {
@@ -223,8 +232,12 @@ class DocumentResource {
         qucosaDocument.getElementsByTagName("Opus_Document").item(0).appendChild(elIdentifierUrn);
     }
 
-    private boolean notNullNotEmpty(String s) {
-        return ((s != null) && (!s.isEmpty()));
+    private boolean notNullNotEmpty(String... args) {
+        boolean result = true;
+        for (String s : args) {
+            result &= ((s != null) && (!s.isEmpty()));
+        }
+        return result;
     }
 
     private String ensurePID(FedoraObjectBuilder fob) throws FedoraClientException {
