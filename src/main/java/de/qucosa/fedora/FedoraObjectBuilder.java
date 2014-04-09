@@ -42,7 +42,7 @@ public class FedoraObjectBuilder {
     private String constituentPid;
     private String title;
     private String derivativeOfPid;
-    private String state = "A";
+    private String state = "I";
 
     public DigitalObjectDocument build() throws ParserConfigurationException {
         DigitalObjectDocument dof = DigitalObjectDocument.Factory.newInstance();

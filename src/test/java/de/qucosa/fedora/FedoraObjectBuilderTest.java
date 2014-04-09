@@ -48,13 +48,14 @@ public class FedoraObjectBuilderTest {
     }
 
     @Test
-    public void buildDocument() throws IOException, SAXException, ParserConfigurationException {
+    public void buildDocument() throws IOException, SAXException, ParserConfigurationException, FedoraObjectBuilderException {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
         fob.pid("qucosa:4711");
         fob.addURN("urn:de:slub-dresden:qucosa:4711");
         fob.label("An arbitrarily migrated Qucosa Document");
         fob.title("The Title of an arbitrarily migrated Qucosa Document");
         fob.ownerId("slub");
+        fob.state("A");
         fob.parentCollectionPid("qucosa:slub");
 
         XMLUnit.setIgnoreWhitespace(true);
@@ -158,6 +159,15 @@ public class FedoraObjectBuilderTest {
 
         XMLAssert.assertXpathEvaluatesTo("urn:foo:bla-4711", "//oai:dc/ns:identifier[1]", testDocument);
         XMLAssert.assertXpathEvaluatesTo("urn:foo:blub-0815", "//oai:dc/ns:identifier[2]", testDocument);
+    }
+
+    @Test
+    public void defaultObjectStateIsInactive() throws Exception {
+        FedoraObjectBuilder fob = new FedoraObjectBuilder();
+        Document testDocument = XMLUnit.buildTestDocument(serialize(fob));
+
+        XMLAssert.assertXpathEvaluatesTo("I", "//fox:objectProperties/fox:property[@NAME='"
+                + INFO_FEDORA_FEDORA_SYSTEM_DEF_MODEL_STATE + "']/@VALUE", testDocument);
     }
 
     private String serialize(FedoraObjectBuilder fob) throws ParserConfigurationException, IOException {
