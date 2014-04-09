@@ -20,15 +20,8 @@ package de.qucosa.spring;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
-import org.springframework.security.access.AccessDecisionManager;
-import org.springframework.security.access.AccessDecisionVoter;
-import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
-import org.springframework.security.access.vote.RoleHierarchyVoter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Configuration
 class AuthenticationConfiguration {
@@ -37,16 +30,6 @@ class AuthenticationConfiguration {
     @Scope("request")
     public Authentication authentication() {
         return SecurityContextHolder.getContext().getAuthentication();
-    }
-
-    @Bean
-    public AccessDecisionManager accessDecisionManager() {
-        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
-        roleHierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER");
-        RoleHierarchyVoter roleHierarchyVoter = new RoleHierarchyVoter(roleHierarchy);
-        List<AccessDecisionVoter> roleHierarchyVoters = new ArrayList<>();
-        roleHierarchyVoters.add(roleHierarchyVoter);
-        return new org.springframework.security.access.vote.AffirmativeBased(roleHierarchyVoters);
     }
 
 }

@@ -21,7 +21,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:security="http://www.springframework.org/schema/security"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
 
     <context:component-scan base-package="de.qucosa"/>
 
@@ -36,12 +36,26 @@
         </property>
     </bean>
 
-    <context:property-placeholder properties-ref="appProperties" ignore-unresolvable="true" ignore-resource-not-found="true"/>
+    <context:property-placeholder properties-ref="appProperties" ignore-unresolvable="true"
+                                  ignore-resource-not-found="true"/>
 
+    <import resource="default-authority-hierarchy.xml"/>
     <import resource="default-fedora-authority-details.xml"/>
     <import resource="default-authority-urnconfig-map.xml"/>
 
     <import resource="file:${QUCOSA_HOME}/config/spring/*.xml"/>
+
+    <bean id="roleVoter" class="org.springframework.security.access.vote.RoleHierarchyVoter">
+        <constructor-arg ref="roleHierarchy"/>
+    </bean>
+
+    <bean id="accessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+        <constructor-arg>
+            <list>
+                <ref bean="roleVoter"/>
+            </list>
+        </constructor-arg>
+    </bean>
 
     <security:http pattern="/index.jsp" security="none"/>
 
