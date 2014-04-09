@@ -40,7 +40,8 @@
 
     <import resource="default-fedora-authority-details.xml"/>
     <import resource="default-authority-urnconfig-map.xml"/>
-    <import resource="file:${QUCOSA_HOME}/config/*.xml"/>
+
+    <import resource="file:${QUCOSA_HOME}/config/spring/*.xml"/>
 
     <security:http pattern="/index.jsp" security="none"/>
 
