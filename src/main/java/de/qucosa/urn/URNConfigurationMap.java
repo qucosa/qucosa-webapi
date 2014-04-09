@@ -15,7 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi.v1;
+package de.qucosa.urn;
+
+import de.qucosa.urn.URNConfiguration;
 
 import java.util.HashMap;
 import java.util.Map;

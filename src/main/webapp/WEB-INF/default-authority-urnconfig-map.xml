@@ -21,19 +21,19 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 
-    <bean id="urnConfiguration-1" class="de.qucosa.webapi.v1.URNConfiguration">
+    <bean id="urnConfiguration-1" class="de.qucosa.urn.URNConfiguration">
         <constructor-arg index="0" value="bsz"/>
         <constructor-arg index="1" value="15"/>
         <constructor-arg index="2" value="qucosa"/>
     </bean>
 
-    <bean id="urnConfiguration-2" class="de.qucosa.webapi.v1.URNConfiguration">
+    <bean id="urnConfiguration-2" class="de.qucosa.urn.URNConfiguration">
         <constructor-arg index="0" value="swb"/>
         <constructor-arg index="1" value="14"/>
         <constructor-arg index="2" value="qucosa"/>
     </bean>
 
-    <bean id="urnConfigurations" class="de.qucosa.webapi.v1.URNConfigurationMap">
+    <bean id="urnConfigurations" class="de.qucosa.urn.URNConfigurationMap">
         <constructor-arg>
             <map>
                 <entry key="ROLE_USER" value-ref="urnConfiguration-1"/>

@@ -15,9 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.util;
-
-import de.qucosa.webapi.v1.URNConfiguration;
+package de.qucosa.urn;
 
 import java.net.URI;
 import java.net.URISyntaxException;

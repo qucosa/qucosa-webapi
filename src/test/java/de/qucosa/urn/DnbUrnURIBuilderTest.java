@@ -15,8 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.util;
+package de.qucosa.urn;
 
+import de.qucosa.urn.DnbUrnURIBuilder;
 import org.junit.Test;
 
 import java.net.URI;
@@ -25,8 +26,6 @@ import java.net.URISyntaxException;
 import static org.junit.Assert.assertEquals;
 
 public class DnbUrnURIBuilderTest {
-
-    // TODO Checksum
 
     @Test(expected = URISyntaxException.class)
     public void exceptionOnUpperCaseLibraryNetworkAbbreviation() throws URISyntaxException {

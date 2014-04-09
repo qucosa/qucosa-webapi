@@ -15,10 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.spring;
+package de.qucosa.urn;
 
-import de.qucosa.webapi.v1.URNConfiguration;
-import de.qucosa.webapi.v1.URNConfigurationMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
