@@ -18,7 +18,7 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.repository.FedoraRepository;
+import de.qucosa.fedora.FedoraRepository;
 import de.qucosa.util.Tuple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;

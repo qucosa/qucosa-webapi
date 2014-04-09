@@ -15,10 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.util;
+package de.qucosa.fedora;
 
-public class FedoraObjectBuilderException extends Exception {
-    public FedoraObjectBuilderException(String msg) {
-        super(msg);
+import com.yourmediashelf.fedora.client.FedoraCredentials;
+import java.util.HashMap;
+import java.util.Map;
+
+class FedoraAuthorityCredentialsMap extends HashMap<String, FedoraCredentials> {
+    public FedoraAuthorityCredentialsMap(Map<String, FedoraCredentials> m) {
+        super(m);
     }
 }

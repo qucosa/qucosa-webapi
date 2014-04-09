@@ -18,7 +18,7 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.repository.FedoraRepository;
+import de.qucosa.fedora.FedoraRepository;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;

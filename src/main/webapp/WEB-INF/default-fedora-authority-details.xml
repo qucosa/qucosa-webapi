@@ -42,7 +42,7 @@
         <beans:constructor-arg index="2" value="fedoraAdmin"/>
     </beans:bean>
 
-    <beans:bean id="fedoraAuthorityCredentialsMap" class="de.qucosa.repository.FedoraAuthorityCredentialsMap">
+    <beans:bean id="fedoraAuthorityCredentialsMap" class="de.qucosa.fedora.FedoraAuthorityCredentialsMap">
         <beans:constructor-arg>
             <beans:map>
                 <beans:entry key="ROLE_ADMIN" value-ref="fedoraAdminCredentials"/>

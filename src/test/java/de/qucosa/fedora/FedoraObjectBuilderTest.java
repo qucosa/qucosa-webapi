@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.util;
+package de.qucosa.fedora;
 
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;

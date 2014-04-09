@@ -18,10 +18,10 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import de.qucosa.repository.FedoraRepository;
+import de.qucosa.fedora.FedoraRepository;
 import de.qucosa.urn.DnbUrnURIBuilder;
 import de.qucosa.urn.URNConfiguration;
-import de.qucosa.util.FedoraObjectBuilder;
+import de.qucosa.fedora.FedoraObjectBuilder;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlOptions;
