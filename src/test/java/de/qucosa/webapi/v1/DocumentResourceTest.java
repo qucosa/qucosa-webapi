@@ -20,10 +20,12 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import de.qucosa.fedora.FedoraRepository;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
+import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -36,21 +38,21 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
-import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyString;
+import static org.custommonkey.xmlunit.XMLAssert.*;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
@@ -63,6 +65,8 @@ public class DocumentResourceTest {
             Collections.singletonMap(SearchResource.XLINK_NAMESPACE_PREFIX, SearchResource.XLINK_NAMESPACE);
     private static final String DOCUMENT_POST_URL = "/document?nis1=bsz&nis2=15&niss=qucosa";
     private static final String DOCUMENT_POST_URL_WITHOUT_PARAMS = "/document";
+    private static final String DOCUMENT_PUT_URL = "/document/4711?nis1=bsz&nis2=15&niss=qucosa";
+    private static final String DOCUMENT_PUT_URL_WITHOUT_PARAMS = "/document/4711";
     private static final String DEFAULT_URN_PREFIX = "urn:nbn:de:bsz:15-qucosa";
     @Autowired
     private FedoraRepository fedoraRepository;
@@ -356,5 +360,126 @@ public class DocumentResourceTest {
                 ))
                 .andExpect(status().isCreated());
     }
+
+    @Test
+    public void updateNotExistingDocumentReturns404() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(false);
+        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document/>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void updatesOnlyMentionedFields() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "<TitleAbstract><Value>Enter two witches.</Value></TitleAbstract>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+
+        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleAbstract><Value>Enter three witches.</Value></TitleAbstract>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository)
+                .modifyDatastreamContent(eq("qucosa:4711"), eq("QUCOSA-XML"), eq("application/vnd.slub.qucosa-v1+xml"),
+                        argCapt.capture());
+
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+        assertXpathEvaluatesTo("Macbeth", "/Opus/Opus_Document/TitleMain/Value", control);
+        assertXpathEvaluatesTo("Enter three witches.", "/Opus/Opus_Document/TitleAbstract/Value", control);
+    }
+
+    @Test
+    @Ignore("Not yet implemented")
+    public void deletingURNGeneratesANewOneInQucosaXML() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+
+        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<IdentifierUrn/>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository)
+                .modifyDatastreamContent(eq("qucosa:4711"), eq("QUCOSA-XML"), eq("application/vnd.slub.qucosa-v1+xml"),
+                        argCapt.capture());
+
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-47118", "/Opus/Opus_Document/IdentifierUrl/Value", control);
+    }
+
+    @Test
+    @Ignore("Not yet implemented")
+    public void addsNewIdentifierToDigitalObject() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+
+        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<IdentifierUrn/>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository)
+                .modifyDatastreamContent(eq("qucosa:4711"), eq("DC"), eq("text/xml"),
+                        argCapt.capture());
+
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+        assertXpathExists("//oai:dc/ns:identifier['" + DEFAULT_URN_PREFIX + "-47118']", control);
+    }
+
 
 }

@@ -18,10 +18,10 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
+import de.qucosa.fedora.FedoraObjectBuilder;
 import de.qucosa.fedora.FedoraRepository;
 import de.qucosa.urn.DnbUrnURIBuilder;
 import de.qucosa.urn.URNConfiguration;
-import de.qucosa.fedora.FedoraObjectBuilder;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlOptions;
@@ -33,10 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
+import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -58,7 +55,9 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Controller
 @Scope("request")
@@ -187,6 +186,49 @@ class DocumentResource {
         return new ResponseEntity<>(okResponse, HttpStatus.CREATED);
     }
 
+    @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.PUT,
+            consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
+    @ResponseBody
+    public ResponseEntity<String> updateDocument(
+            @PathVariable String qucosaID,
+            @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,
+            @RequestParam(value = "nis2", required = false) String libraryIdentifier,
+            @RequestParam(value = "niss", required = false) String prefix,
+            @RequestBody String body) throws Exception {
+
+        String pid = "qucosa:" + qucosaID;
+        if (!fedoraRepository.hasObject(pid)) {
+            return errorResponse("Qucosa document " + qucosaID + " not found.", HttpStatus.NOT_FOUND);
+        }
+
+        DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = builderFactory.newDocumentBuilder();
+
+        Document updateDocument = builder.parse(IOUtils.toInputStream(body));
+        assertXPathNodeExists("/Opus[@version='2.0']", "No Opus node with version '2.0'.", updateDocument);
+        assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", updateDocument);
+
+        Document qucosaDocument =
+                builder.parse(fedoraRepository.getDatastreamContent(
+                        pid, "QUCOSA-XML"));
+
+        updateWith(qucosaDocument, updateDocument);
+        assertBasicDocumentProperties(qucosaDocument);
+
+        // TODO Generate new URN if update document deletes it (including adding dc:identifier)
+
+        StringWriter sw = new StringWriter();
+        StreamResult streamResult = new StreamResult(sw);
+        TransformerFactory.newInstance().newTransformer().transform(
+                new DOMSource(qucosaDocument), streamResult);
+
+        InputStream inputStream = IOUtils.toInputStream(sw.toString());
+        fedoraRepository.modifyDatastreamContent(pid, "QUCOSA-XML", "application/vnd.slub.qucosa-v1+xml", inputStream);
+
+        String okResponse = getDocumentUpdatedResponse();
+        return new ResponseEntity<>(okResponse, HttpStatus.OK);
+    }
+
     @ExceptionHandler(BadQucosaDocumentException.class)
     public ResponseEntity qucosaDocumentExceptionHandler(BadQucosaDocumentException ex) throws XMLStreamException {
         log.error(ex.getMessage());
@@ -198,6 +240,32 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void updateWith(Document target, final Document update) {
+        Element targetRoot = (Element) target.getElementsByTagName("Opus_Document").item(0);
+        Element updateRoot = (Element) update.getElementsByTagName("Opus_Document").item(0);
+
+        Set<String> distinctUpdateFieldList = new LinkedHashSet<>();
+        NodeList updateFields = updateRoot.getChildNodes();
+        for (int i = 0; i < updateFields.getLength(); i++) {
+            distinctUpdateFieldList.add(updateFields.item(i).getNodeName());
+        }
+
+        for (String fn : distinctUpdateFieldList) {
+            NodeList deleteList = targetRoot.getElementsByTagName(fn);
+            for (int i = 0; i < deleteList.getLength(); i++) {
+                targetRoot.removeChild(deleteList.item(i));
+            }
+        }
+
+        for (int i = 0; i < updateFields.getLength(); i++) {
+            Node updateNode = updateFields.item(i);
+            target.adoptNode(updateNode);
+            targetRoot.appendChild(updateNode);
+        }
+
+        target.normalizeDocument();
     }
 
     private void ensureURN(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, FedoraObjectBuilder fob, String pid, Document qucosaDocument) throws BadQucosaDocumentException, URISyntaxException {
@@ -339,6 +407,20 @@ class DocumentResource {
         w.writeNamespace(XLINK_NAMESPACE_PREFIX, XLINK_NAMESPACE);
         w.writeAttribute(XLINK_NAMESPACE, "href", getHrefLink(id));
         w.writeAttribute("id", id);
+        w.writeEndElement();
+        w.writeEndElement();
+        w.writeEndDocument();
+        w.flush();
+        return sw.toString();
+    }
+
+    private String getDocumentUpdatedResponse() throws XMLStreamException {
+        StringWriter sw = new StringWriter();
+        XMLStreamWriter w = xmlOutputFactory.createXMLStreamWriter(sw);
+        w.writeStartDocument("UTF-8", "1.0");
+        w.writeStartElement("Opus");
+        w.writeStartElement("Opus_Document_Info");
+        w.writeCharacters("Update was successful.");
         w.writeEndElement();
         w.writeEndElement();
         w.writeEndDocument();
