@@ -29,7 +29,7 @@ import java.io.StringWriter;
 public class BadQucosaDocumentException extends Exception {
 
     private final Document document;
-    private String serializedDocument = null;
+    private String serializedDocument = "";
 
     public BadQucosaDocumentException(String msg, Document document) {
         super(msg);
@@ -37,7 +37,7 @@ public class BadQucosaDocumentException extends Exception {
     }
 
     public String getXml() {
-        if (serializedDocument == null) {
+        if (document != null) {
             serializedDocument = serialize(document);
         }
         return serializedDocument;

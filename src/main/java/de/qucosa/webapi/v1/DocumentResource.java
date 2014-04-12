@@ -22,6 +22,7 @@ import de.qucosa.fedora.FedoraObjectBuilder;
 import de.qucosa.fedora.FedoraRepository;
 import de.qucosa.urn.DnbUrnURIBuilder;
 import de.qucosa.urn.URNConfiguration;
+import de.qucosa.urn.URNConfigurationException;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlOptions;
@@ -53,7 +54,6 @@ import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -174,7 +174,15 @@ class DocumentResource {
         assertPidIsNotUsed(pid);
         String id = pid.substring("qucosa:".length());
 
-        ensureURN(libraryNetworkAbbreviation, libraryIdentifier, prefix, fob, id, qucosaDocument);
+        if (!hasURN(fob)) try {
+            String urnnbn = generateUrnString(libraryNetworkAbbreviation, libraryIdentifier, prefix, id);
+            fob.addURN(urnnbn);
+            addIdentifierUrn(qucosaDocument, urnnbn);
+        } catch (URNConfigurationException uex) {
+            throw new BadQucosaDocumentException(
+                    "Qucosa document has no IdentifierURN but new URN cannot be generated: " + uex.getMessage(),
+                    qucosaDocument);
+        }
 
         DigitalObjectDocument dod = fob.build();
         if (log.isDebugEnabled()) {
@@ -268,24 +276,32 @@ class DocumentResource {
         target.normalizeDocument();
     }
 
-    private void ensureURN(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, FedoraObjectBuilder fob, String pid, Document qucosaDocument) throws BadQucosaDocumentException, URISyntaxException {
-        if (hasURN(fob)) return;
-        URI nbnurn = new DnbUrnURIBuilder()
-                .with(getUrnConfiguration(libraryNetworkAbbreviation, libraryIdentifier, prefix, qucosaDocument))
-                .uniqueNumber(pid)
-                .build();
-        String urnString = nbnurn.toASCIIString();
-        fob.addURN(urnString);
-        addIdentifierUrn(qucosaDocument, urnString);
+    private String generateUrnString(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, String pid)
+            throws URNConfigurationException {
+        try {
+            return new DnbUrnURIBuilder()
+                    .with(getUrnConfiguration(libraryNetworkAbbreviation, libraryIdentifier, prefix))
+                    .uniqueNumber(pid)
+                    .build()
+                    .toASCIIString();
+        } catch (URISyntaxException e) {
+            throw new URNConfigurationException(
+                    String.format("Configured URN parameter (%s, %s, %s) result in illegal URI.",
+                            libraryNetworkAbbreviation,
+                            libraryIdentifier,
+                            prefix)
+            );
+        }
     }
 
-    private URNConfiguration getUrnConfiguration(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, Document qucosaDocument) throws BadQucosaDocumentException {
+    private URNConfiguration getUrnConfiguration(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix)
+            throws URNConfigurationException {
         URNConfiguration localUrnConfiguration;
         if (notNullNotEmpty(libraryNetworkAbbreviation, libraryIdentifier, prefix)) {
             localUrnConfiguration = new URNConfiguration(libraryNetworkAbbreviation, libraryIdentifier, prefix);
         } else {
             if (urnConfiguration == null) {
-                throw new BadQucosaDocumentException("Document doesn't have IdentifierUrn node but namespace query parameter are missing. Cannot generate URN!", qucosaDocument);
+                throw new URNConfigurationException("Document doesn't have IdentifierUrn node but namespace query parameter are missing. Cannot generate URN!");
             }
             localUrnConfiguration = urnConfiguration;
         }
