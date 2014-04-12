@@ -98,6 +98,18 @@ public class FedoraRepository {
         return fr.getEntityInputStream();
     }
 
+    public void modifyDatastreamContent(String pid, String dsid, String mimeType, InputStream input) throws FedoraClientException {
+        FedoraResponse response = fedoraClient.execute(
+                new ModifyDatastream(pid, dsid)
+                        .content(input)
+                        .mimeType(mimeType)
+        );
+        int status = response.getStatus();
+        if (status != 200) {
+            throw new FedoraClientException(status, "Error writing modifying datastream content.");
+        }
+    }
+
     public List<Tuple<String>> getSuccessorPIDs(String pid, String relationPredicate) throws FedoraClientException, IOException {
         ArrayList<Tuple<String>> result = new ArrayList<>();
         String query = "select ?constituent ?constituent_urn ?constituent_title where { " +

@@ -21,8 +21,10 @@ import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
 import com.yourmediashelf.fedora.client.request.GetNextPID;
+import com.yourmediashelf.fedora.client.request.ModifyDatastream;
 import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
 import com.yourmediashelf.fedora.client.response.GetNextPIDResponse;
+import com.yourmediashelf.fedora.client.response.ModifyDatastreamResponse;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,8 +34,7 @@ import java.io.InputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class FedoraRepositoryTest {
 
@@ -55,6 +56,18 @@ public class FedoraRepositoryTest {
         InputStream contentStream = fedoraRepository.getDatastreamContent("test:1", "TEST-DS");
 
         assertEquals("Test Content", IOUtils.toString(contentStream));
+    }
+
+    @Test
+    public void modifiesDatastreamContent() throws Exception {
+        ModifyDatastreamResponse mockResponse = mock(ModifyDatastreamResponse.class);
+        when(mockResponse.getStatus()).thenReturn(200);
+        when(fedoraClient.execute(any(ModifyDatastream.class))).thenReturn(mockResponse);
+
+        InputStream testInputStream = IOUtils.toInputStream("testInputData");
+        fedoraRepository.modifyDatastreamContent("test:1", "TEST-DS", "text", testInputStream);
+
+        verify(fedoraClient).execute(any(ModifyDatastream.class));
     }
 
     @SuppressWarnings("unchecked")
