@@ -289,7 +289,9 @@ class DocumentResource {
         }
 
         for (int i = 0; i < updateFields.getLength(); i++) {
-            Node updateNode = updateFields.item(i);
+            // Update node needs to be cloned, otherwise it will
+            // be removed from updateFields by adoptNode().
+            Node updateNode = updateFields.item(i).cloneNode(true);
             target.adoptNode(updateNode);
             targetRoot.appendChild(updateNode);
         }

@@ -383,6 +383,7 @@ public class DocumentResourceTest {
                         "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
                                 "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "<TitleSub><Value>The Scottish play</Value></TitleSub>" +
                                 "<TitleAbstract><Value>Enter two witches.</Value></TitleAbstract>" +
                                 "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
                                 "</Opus_Document>" +
@@ -407,7 +408,9 @@ public class DocumentResourceTest {
                 .modifyDatastreamContent(eq("qucosa:4711"), eq("QUCOSA-XML"), eq("application/vnd.slub.qucosa-v1+xml"),
                         argCapt.capture());
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+
         assertXpathEvaluatesTo("Macbeth", "/Opus/Opus_Document/TitleMain/Value", control);
+        assertXpathEvaluatesTo("The Scottish play", "/Opus/Opus_Document/TitleSub/Value", control);
         assertXpathEvaluatesTo("Enter three witches.", "/Opus/Opus_Document/TitleAbstract/Value", control);
     }
 
