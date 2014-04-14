@@ -55,6 +55,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -274,9 +275,10 @@ class DocumentResource {
         }
 
         for (String fn : distinctUpdateFieldList) {
-            NodeList deleteList = targetRoot.getElementsByTagName(fn);
-            for (int i = 0; i < deleteList.getLength(); i++) {
-                targetRoot.removeChild(deleteList.item(i));
+            // cannot use getElementsByTagName() here because it searches recursively
+            List<Node> deleteList = getChildNodesByName(targetRoot, fn);
+            for (Node n : deleteList) {
+                targetRoot.removeChild(n);
             }
         }
 
@@ -289,6 +291,18 @@ class DocumentResource {
         }
 
         target.normalizeDocument();
+    }
+
+    private List<Node> getChildNodesByName(final Element targetRoot, String nodeName) {
+        List<Node> nodeList = new LinkedList<>();
+        NodeList nl = targetRoot.getChildNodes();
+        for (int i = 0; i < nl.getLength(); i++) {
+            Node n = nl.item(i);
+            if (nodeName.equals(n.getNodeName())) {
+                nodeList.add(n);
+            }
+        }
+        return nodeList;
     }
 
     private String generateUrnString(String libraryNetworkAbbreviation, String libraryIdentifier, String prefix, String pid)
