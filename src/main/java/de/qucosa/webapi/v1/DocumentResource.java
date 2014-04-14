@@ -311,8 +311,10 @@ class DocumentResource {
             // Update node needs to be cloned, otherwise it will
             // be removed from updateFields by adoptNode().
             Node updateNode = updateFields.item(i).cloneNode(true);
-            target.adoptNode(updateNode);
-            targetRoot.appendChild(updateNode);
+            if (updateNode.hasChildNodes()) {
+                target.adoptNode(updateNode);
+                targetRoot.appendChild(updateNode);
+            }
         }
 
         target.normalizeDocument();

@@ -51,7 +51,9 @@ import static org.custommonkey.xmlunit.XMLAssert.*;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
@@ -501,7 +503,6 @@ public class DocumentResourceTest {
         assertXpathExists("//oai:dc/ns:identifier[text()='" + DEFAULT_URN_PREFIX + "-47118']", control);
     }
 
-
     @Test
     public void addingNewField() throws Exception {
         when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
@@ -534,6 +535,40 @@ public class DocumentResourceTest {
                         argCapt.capture());
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
         assertXpathEvaluatesTo("published", "/Opus/Opus_Document/ServerState", control);
+    }
+
+    @Test
+    public void doesNotAddEmptyFields() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "<IdentifierUrn><Value>urn:nbn:de:slub-dresden:qucosa:47116</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+
+        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<ServerState/>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository)
+                .modifyDatastreamContent(eq("qucosa:4711"), eq("QUCOSA-XML"), eq("application/vnd.slub.qucosa-v1+xml"),
+                        argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+        assertXpathNotExists("/Opus/Opus_Document/ServerState", control);
     }
 
     @Test
