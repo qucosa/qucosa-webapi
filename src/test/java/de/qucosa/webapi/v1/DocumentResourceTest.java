@@ -572,4 +572,43 @@ public class DocumentResourceTest {
         assertXpathEvaluatesTo("other", "/Opus/Opus_Document/Organisation/Type", control);
     }
 
+    @Test
+    public void updatesObjectLabel() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Mac Beth</Value></TitleMain>" +
+                                "<IdentifierUrn><Value>urn:nbn:de:slub-dresden:qucosa:47116</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "DC")).thenReturn(
+                IOUtils.toInputStream(
+                        "<oai:dc xmlns:oai=\"http://www.openarchives.org/OAI/2.0/oai_dc/\">" +
+                                "<ns:title xmlns:ns=\"http://purl.org/dc/elements/1.1/\">Mac Beth</ns:title>" +
+                                "<ns:identifier xmlns:ns=\"http://purl.org/dc/elements/1.1/\">urn:nbn:de:slub-dresden:qucosa:47116" +
+                                "</ns:identifier>" +
+                                "</oai:dc>"
+                )
+        );
+
+        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isOk());
+
+        verify(fedoraRepository, atLeastOnce())
+                .modifyObjectMetadata(eq("qucosa:4711"), any(String.class), contains("Macbeth"), eq("qucosa"));
+    }
+
 }

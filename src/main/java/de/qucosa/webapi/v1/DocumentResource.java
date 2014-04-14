@@ -218,7 +218,7 @@ class DocumentResource {
                 documentBuilder.parse(fedoraRepository.getDatastreamContent(
                         pid, "QUCOSA-XML"));
 
-        updateWith(qucosaDocument, updateDocument);
+        Set<String> updateFields = updateWith(qucosaDocument, updateDocument);
         assertBasicDocumentProperties(qucosaDocument);
 
         if (!hasURN(qucosaDocument)) {
@@ -230,6 +230,17 @@ class DocumentResource {
         InputStream inputStream = IOUtils.toInputStream(
                 DOMSerializer.toString(qucosaDocument));
         fedoraRepository.modifyDatastreamContent(pid, "QUCOSA-XML", "application/vnd.slub.qucosa-v1+xml", inputStream);
+
+        String state = null;
+        if (updateFields.contains("ServerState")) {
+            state = determineState(qucosaDocument);
+        }
+        String label = null;
+        if (updateFields.contains("TitleMain") || updateFields.contains("PersonAuthor")) {
+            label = buildAts(qucosaDocument);
+        }
+        String ownerId = "qucosa";
+        fedoraRepository.modifyObjectMetadata(pid, state, label, ownerId);
 
         String okResponse = getDocumentUpdatedResponse();
         return new ResponseEntity<>(okResponse, HttpStatus.OK);
@@ -248,6 +259,10 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
+    private String determineState(Document qucosaDocument) {
+        return null;
+    }
+
     private void addIdentifierUrnToDcDatastream(String pid, String urnnbn)
             throws FedoraClientException, ParserConfigurationException, IOException, SAXException, TransformerException {
         InputStream dcStream = fedoraRepository.getDatastreamContent(pid, "DC");
@@ -264,7 +279,7 @@ class DocumentResource {
         fedoraRepository.modifyDatastreamContent(pid, "DC", "text/xml", modifiedDcStream);
     }
 
-    private void updateWith(Document target, final Document update) {
+    private Set<String> updateWith(Document target, final Document update) {
         Element targetRoot = (Element) target.getElementsByTagName("Opus_Document").item(0);
         Element updateRoot = (Element) update.getElementsByTagName("Opus_Document").item(0);
 
@@ -291,6 +306,7 @@ class DocumentResource {
         }
 
         target.normalizeDocument();
+        return distinctUpdateFieldList;
     }
 
     private List<Node> getChildNodesByName(final Element targetRoot, String nodeName) {
@@ -427,9 +443,7 @@ class DocumentResource {
         String pid = xPath.evaluate("/Opus/Opus_Document/DocumentId", qucosaDoc);
         if (!pid.isEmpty()) fob.pid("qucosa:" + pid);
 
-        String ats = ats(xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/LastName", qucosaDoc),
-                xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/FirstName", qucosaDoc),
-                xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc));
+        String ats = buildAts(qucosaDoc);
         if (!ats.isEmpty()) fob.label(ats);
 
         String title = xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc);
@@ -445,6 +459,12 @@ class DocumentResource {
         fob.qucosaXmlDocument(qucosaDoc);
 
         return fob;
+    }
+
+    private String buildAts(final Document qucosaDoc) throws XPathExpressionException {
+        return ats(xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/LastName", qucosaDoc),
+                xPath.evaluate("/Opus/Opus_Document/PersonAuthor[1]/FirstName", qucosaDoc),
+                xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDoc));
     }
 
     private String getDocumentCreatedResponse(String id) throws XMLStreamException {
