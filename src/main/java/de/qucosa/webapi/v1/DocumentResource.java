@@ -23,6 +23,7 @@ import de.qucosa.fedora.FedoraRepository;
 import de.qucosa.urn.DnbUrnURIBuilder;
 import de.qucosa.urn.URNConfiguration;
 import de.qucosa.urn.URNConfigurationException;
+import de.qucosa.util.DOMSerializer;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlOptions;
@@ -45,8 +46,6 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.*;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -93,6 +92,9 @@ class DocumentResource {
 
         transformer = TransformerFactory.newInstance().newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
 
         xmlOutputFactory = XMLOutputFactory.newFactory();
     }
@@ -148,10 +150,8 @@ class DocumentResource {
     @ResponseBody
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws FedoraClientException, IOException, SAXException, TransformerException {
         InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
-        StringWriter sw = new StringWriter();
-        Result transformResult = new StreamResult(sw);
-        transformer.transform(new DOMSource(documentBuilder.parse(dsContent)), transformResult);
-        return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
+        Document doc = documentBuilder.parse(dsContent);
+        return new ResponseEntity<>(DOMSerializer.toString(doc), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/document", method = RequestMethod.POST,
@@ -226,12 +226,8 @@ class DocumentResource {
             addIdentifierUrnToDcDatastream(pid, urnnbn);
         }
 
-        StringWriter sw = new StringWriter();
-        StreamResult streamResult = new StreamResult(sw);
-        TransformerFactory.newInstance().newTransformer().transform(
-                new DOMSource(qucosaDocument), streamResult);
-
-        InputStream inputStream = IOUtils.toInputStream(sw.toString());
+        InputStream inputStream = IOUtils.toInputStream(
+                DOMSerializer.toString(qucosaDocument));
         fedoraRepository.modifyDatastreamContent(pid, "QUCOSA-XML", "application/vnd.slub.qucosa-v1+xml", inputStream);
 
         String okResponse = getDocumentUpdatedResponse();
@@ -262,12 +258,8 @@ class DocumentResource {
         newDcIdentifier.setTextContent(urnnbn.trim().toLowerCase());
         dcDocument.getDocumentElement().appendChild(newDcIdentifier);
 
-        StringWriter sw = new StringWriter();
-        StreamResult streamResult = new StreamResult(sw);
-        TransformerFactory.newInstance().newTransformer().transform(
-                new DOMSource(dcDocument), streamResult);
-
-        InputStream modifiedDcStream = IOUtils.toInputStream(sw.toString());
+        InputStream modifiedDcStream = IOUtils.toInputStream(
+                DOMSerializer.toString(dcDocument));
         fedoraRepository.modifyDatastreamContent(pid, "DC", "text/xml", modifiedDcStream);
     }
 
