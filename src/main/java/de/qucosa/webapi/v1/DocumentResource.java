@@ -209,21 +209,22 @@ class DocumentResource {
             return errorResponse("Qucosa document " + qucosaID + " not found.", HttpStatus.NOT_FOUND);
         }
 
-        DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder builder = builderFactory.newDocumentBuilder();
-
-        Document updateDocument = builder.parse(IOUtils.toInputStream(body));
+        Document updateDocument = documentBuilder.parse(IOUtils.toInputStream(body));
         assertXPathNodeExists("/Opus[@version='2.0']", "No Opus node with version '2.0'.", updateDocument);
         assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", updateDocument);
 
         Document qucosaDocument =
-                builder.parse(fedoraRepository.getDatastreamContent(
+                documentBuilder.parse(fedoraRepository.getDatastreamContent(
                         pid, "QUCOSA-XML"));
 
         updateWith(qucosaDocument, updateDocument);
         assertBasicDocumentProperties(qucosaDocument);
 
-        // TODO Generate new URN if update document deletes it (including adding dc:identifier)
+        if (!hasURN(qucosaDocument)) {
+            String urnnbn = generateUrnString(libraryNetworkAbbreviation, libraryIdentifier, prefix, qucosaID);
+            addIdentifierUrn(qucosaDocument, urnnbn);
+            addIdentifierUrnToDcDatastream(pid, urnnbn);
+        }
 
         StringWriter sw = new StringWriter();
         StreamResult streamResult = new StreamResult(sw);
@@ -248,6 +249,26 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void addIdentifierUrnToDcDatastream(String pid, String urnnbn)
+            throws FedoraClientException, ParserConfigurationException, IOException, SAXException, TransformerException {
+        InputStream dcStream = fedoraRepository.getDatastreamContent(pid, "DC");
+
+        Document dcDocument = documentBuilder.parse(dcStream);
+
+        Element newDcIdentifier = dcDocument.createElementNS(
+                "http://purl.org/dc/elements/1.1/", "ns:identifier");
+        newDcIdentifier.setTextContent(urnnbn.trim().toLowerCase());
+        dcDocument.getDocumentElement().appendChild(newDcIdentifier);
+
+        StringWriter sw = new StringWriter();
+        StreamResult streamResult = new StreamResult(sw);
+        TransformerFactory.newInstance().newTransformer().transform(
+                new DOMSource(dcDocument), streamResult);
+
+        InputStream modifiedDcStream = IOUtils.toInputStream(sw.toString());
+        fedoraRepository.modifyDatastreamContent(pid, "DC", "text/xml", modifiedDcStream);
     }
 
     private void updateWith(Document target, final Document update) {
@@ -343,11 +364,15 @@ class DocumentResource {
         }
     }
 
-    private boolean hasURN(FedoraObjectBuilder fob) {
+    private boolean hasURN(final FedoraObjectBuilder fob) {
         return (!fob.URNs().isEmpty());
     }
 
-    private boolean hasPID(FedoraObjectBuilder fob) {
+    private boolean hasURN(final Document doc) throws XPathExpressionException {
+        return (!xPath.evaluate("//IdentifierUrn/Value[1]", doc).isEmpty());
+    }
+
+    private boolean hasPID(final FedoraObjectBuilder fob) {
         return (fob.pid() != null) && (!fob.pid().isEmpty());
     }
 

@@ -25,7 +25,6 @@ import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -49,9 +48,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.custommonkey.xmlunit.XMLAssert.*;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
@@ -384,6 +384,7 @@ public class DocumentResourceTest {
                                 "<Opus_Document>" +
                                 "<TitleMain><Value>Macbeth</Value></TitleMain>" +
                                 "<TitleAbstract><Value>Enter two witches.</Value></TitleAbstract>" +
+                                "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
                                 "</Opus_Document>" +
                                 "</Opus>"
                 )
@@ -405,23 +406,31 @@ public class DocumentResourceTest {
         verify(fedoraRepository)
                 .modifyDatastreamContent(eq("qucosa:4711"), eq("QUCOSA-XML"), eq("application/vnd.slub.qucosa-v1+xml"),
                         argCapt.capture());
-
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
         assertXpathEvaluatesTo("Macbeth", "/Opus/Opus_Document/TitleMain/Value", control);
         assertXpathEvaluatesTo("Enter three witches.", "/Opus/Opus_Document/TitleAbstract/Value", control);
     }
 
     @Test
-    @Ignore("Not yet implemented")
-    public void deletingURNGeneratesANewOneInQucosaXML() throws Exception {
+    public void deletingURNGeneratesNewOneInQucosaXML() throws Exception {
         when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
         when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
                 IOUtils.toInputStream(
                         "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
-                                "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "<IdentifierUrn><Value>urn:nbn:foo-47118</Value></IdentifierUrn>" +
                                 "</Opus_Document>" +
                                 "</Opus>"
+                )
+        );
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "DC")).thenReturn(
+                IOUtils.toInputStream(
+                        "<oai:dc xmlns:oai=\"http://www.openarchives.org/OAI/2.0/oai_dc/\">" +
+                                "<ns:title xmlns:ns=\"http://purl.org/dc/elements/1.1/\">Macbeth</ns:title>" +
+                                "<ns:identifier xmlns:ns=\"http://purl.org/dc/elements/1.1/\">urn:nbn:foo-47118" +
+                                "</ns:identifier>" +
+                                "</oai:dc>"
                 )
         );
 
@@ -441,22 +450,30 @@ public class DocumentResourceTest {
         verify(fedoraRepository)
                 .modifyDatastreamContent(eq("qucosa:4711"), eq("QUCOSA-XML"), eq("application/vnd.slub.qucosa-v1+xml"),
                         argCapt.capture());
-
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
-        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-47118", "/Opus/Opus_Document/IdentifierUrl/Value", control);
+        assertXpathEvaluatesTo(DEFAULT_URN_PREFIX + "-47118", "/Opus/Opus_Document/IdentifierUrn/Value", control);
     }
 
     @Test
-    @Ignore("Not yet implemented")
-    public void addsNewIdentifierToDigitalObject() throws Exception {
+    public void addsNewIdentifierToDigitalObjectDublinCoreDatastream() throws Exception {
         when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
         when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
                 IOUtils.toInputStream(
                         "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
                                 "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
                                 "</Opus_Document>" +
                                 "</Opus>"
+                )
+        );
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "DC")).thenReturn(
+                IOUtils.toInputStream(
+                        "<oai:dc xmlns:oai=\"http://www.openarchives.org/OAI/2.0/oai_dc/\">" +
+                                "<ns:title xmlns:ns=\"http://purl.org/dc/elements/1.1/\">Macbeth</ns:title>" +
+                                "<ns:identifier xmlns:ns=\"http://purl.org/dc/elements/1.1/\">urn:nbn:de:slub-dresden:qucosa:47116" +
+                                "</ns:identifier>" +
+                                "</oai:dc>"
                 )
         );
 
@@ -473,13 +490,12 @@ public class DocumentResourceTest {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
-        verify(fedoraRepository)
+        verify(fedoraRepository, atLeastOnce())
                 .modifyDatastreamContent(eq("qucosa:4711"), eq("DC"), eq("text/xml"),
                         argCapt.capture());
-
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
-        assertXpathExists("//oai:dc/ns:identifier['" + DEFAULT_URN_PREFIX + "-47118']", control);
+        assertXpathExists("//oai:dc/ns:identifier[text()='urn:nbn:de:slub-dresden:qucosa:47116']", control);
+        assertXpathExists("//oai:dc/ns:identifier[text()='" + DEFAULT_URN_PREFIX + "-47118']", control);
     }
-
 
 }
