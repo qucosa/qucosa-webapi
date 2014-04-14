@@ -22,6 +22,8 @@ import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
 import com.yourmediashelf.fedora.client.request.GetNextPID;
 import com.yourmediashelf.fedora.client.request.ModifyDatastream;
+import com.yourmediashelf.fedora.client.request.ModifyObject;
+import com.yourmediashelf.fedora.client.response.FedoraResponse;
 import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
 import com.yourmediashelf.fedora.client.response.GetNextPIDResponse;
 import com.yourmediashelf.fedora.client.response.ModifyDatastreamResponse;
@@ -86,6 +88,17 @@ public class FedoraRepositoryTest {
         String newPid = fedoraRepository.mintPid(null);
 
         assertEquals("qucosa:4711", newPid);
+    }
+
+    @Test
+    public void modifiesObjectMetadata() throws Exception {
+        FedoraResponse mockResponse = mock(FedoraResponse.class);
+        when(mockResponse.getStatus()).thenReturn(200);
+        when(fedoraClient.execute(any(ModifyObject.class))).thenReturn(mockResponse);
+
+        fedoraRepository.modifyObjectMetadata("qucosa:4711", "A", "new-label", "qucosa");
+
+        verify(fedoraClient).execute(any(ModifyObject.class));
     }
 
 }

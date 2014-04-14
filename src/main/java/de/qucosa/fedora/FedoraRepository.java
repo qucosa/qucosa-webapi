@@ -145,6 +145,21 @@ public class FedoraRepository {
         return (findObjectsResponse.getPids().size() > 0);
     }
 
+    public void modifyObjectMetadata(String pid, String state, String label, String owner)
+            throws FedoraClientException {
+        ModifyObject modifyObjectRequest = new ModifyObject(pid);
+
+        if ((state != null) && (! state.isEmpty())) modifyObjectRequest.state(state);
+        if ((label != null) && (! label.isEmpty())) modifyObjectRequest.label(label);
+        if ((owner != null) && (! owner.isEmpty())) modifyObjectRequest.ownerId(owner);
+
+        FedoraResponse response = fedoraClient.execute(modifyObjectRequest);
+        int status = response.getStatus();
+        if (status != 200) {
+            throw new FedoraClientException(status, "Error writing modifying object properties.");
+        }
+    }
+
     private void closeIfNotNull(FedoraResponse fr) {
         if (fr != null) fr.close();
     }
