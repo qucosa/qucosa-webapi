@@ -259,8 +259,18 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    private String determineState(Document qucosaDocument) {
-        return null;
+    private String determineState(Document qucosaDocument) throws XPathExpressionException {
+        String serverState = xPath.evaluate("/Opus/Opus_Document/ServerState", qucosaDocument);
+        switch (serverState) {
+            case "published":
+                return "A";
+            case "unpublished":
+                return "I";
+            case "deleted":
+                return "D";
+            default:
+                return null;
+        }
     }
 
     private void addIdentifierUrnToDcDatastream(String pid, String urnnbn)
