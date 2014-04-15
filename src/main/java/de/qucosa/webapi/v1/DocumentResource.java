@@ -39,6 +39,8 @@ import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.XMLConstants;
+import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -54,10 +56,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Controller
 @Scope("request")
@@ -73,6 +72,29 @@ class DocumentResource {
     static {
         xPathFactory = XPathFactory.newInstance();
         xPath = xPathFactory.newXPath();
+        xPath.setNamespaceContext(new NamespaceContext() {
+            @Override
+            public String getNamespaceURI(String prefix) {
+                switch (prefix) {
+                    case "ns":
+                        return "http://purl.org/dc/elements/1.1/";
+                    default:
+                        return XMLConstants.NULL_NS_URI;
+                }
+            }
+
+            @Override
+            public String getPrefix(String namespaceURI) {
+                return XMLConstants.DEFAULT_NS_PREFIX;
+            }
+
+            @Override
+            public Iterator getPrefixes(String namespaceURI) {
+                return new ArrayList() {{
+                    add(XMLConstants.XML_NS_PREFIX);
+                }}.iterator();
+            }
+        });
     }
 
     final private Logger log = LoggerFactory.getLogger(DocumentResource.class);
@@ -89,7 +111,9 @@ class DocumentResource {
         this.fedoraRepository = fedoraRepository;
         this.urnConfiguration = urnConfiguration;
 
-        documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(true);
+        documentBuilder = documentBuilderFactory.newDocumentBuilder();
 
         transformer = TransformerFactory.newInstance().newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -152,6 +176,8 @@ class DocumentResource {
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws FedoraClientException, IOException, SAXException, TransformerException {
         InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
         Document doc = documentBuilder.parse(dsContent);
+        doc.normalizeDocument();
+        removeEmtpyFields(doc);
         return new ResponseEntity<>(DOMSerializer.toString(doc), HttpStatus.OK);
     }
 
@@ -221,15 +247,28 @@ class DocumentResource {
         Set<String> updateFields = updateWith(qucosaDocument, updateDocument);
         assertBasicDocumentProperties(qucosaDocument);
 
+
+        List<String> newDcUrns = new LinkedList<>();
+        if (updateFields.contains("IdentifierUrn")) {
+            Set<String> updateSet = getIdentifierUrnValueSet(updateDocument);
+            newDcUrns.addAll(updateSet);
+        }
         if (!hasURN(qucosaDocument)) {
             String urnnbn = generateUrnString(libraryNetworkAbbreviation, libraryIdentifier, prefix, qucosaID);
             addIdentifierUrn(qucosaDocument, urnnbn);
-            addIdentifierUrnToDcDatastream(pid, urnnbn);
+            newDcUrns.add(urnnbn);
         }
+        String newTitle = null;
+        if (updateFields.contains("TitleMain")) {
+            newTitle = xPath.evaluate("/Opus/Opus_Document/TitleMain[1]/Value", qucosaDocument);
+        }
+        modifyDcDatastream(pid, newDcUrns, newTitle);
+
 
         InputStream inputStream = IOUtils.toInputStream(
                 DOMSerializer.toString(qucosaDocument));
         fedoraRepository.modifyDatastreamContent(pid, "QUCOSA-XML", "application/vnd.slub.qucosa-v1+xml", inputStream);
+
 
         String state = null;
         if (updateFields.contains("ServerState")) {
@@ -238,9 +277,11 @@ class DocumentResource {
         String label = null;
         if (updateFields.contains("TitleMain") || updateFields.contains("PersonAuthor")) {
             label = buildAts(qucosaDocument);
+
         }
         String ownerId = "qucosa";
         fedoraRepository.modifyObjectMetadata(pid, state, label, ownerId);
+
 
         String okResponse = getDocumentUpdatedResponse();
         return new ResponseEntity<>(okResponse, HttpStatus.OK);
@@ -259,6 +300,28 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
+    private Set<String> getIdentifierUrnValueSet(Document updateDocument) {
+        Set<String> result = new HashSet<>();
+        NodeList nl = updateDocument.getElementsByTagName("IdentifierUrn");
+        for (int i = 0; i < nl.getLength(); i++) {
+            Element e = (Element) nl.item(i);
+            if (e.hasChildNodes()) {
+                String v = e.getElementsByTagName("Value").item(0).getTextContent();
+                result.add(v);
+            }
+        }
+        return result;
+    }
+
+    private void removeEmtpyFields(Document doc) {
+        Element root = (Element) doc.getElementsByTagName("Opus_Document").item(0);
+        NodeList childNodes = root.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node childNode = childNodes.item(i);
+            if (!childNode.hasChildNodes()) root.removeChild(childNode);
+        }
+    }
+
     private String determineState(Document qucosaDocument) throws XPathExpressionException {
         String serverState = xPath.evaluate("/Opus/Opus_Document/ServerState", qucosaDocument);
         switch (serverState) {
@@ -273,16 +336,29 @@ class DocumentResource {
         }
     }
 
-    private void addIdentifierUrnToDcDatastream(String pid, String urnnbn)
-            throws FedoraClientException, ParserConfigurationException, IOException, SAXException, TransformerException {
-        InputStream dcStream = fedoraRepository.getDatastreamContent(pid, "DC");
+    private void modifyDcDatastream(String pid, List<String> urns, String title)
+            throws FedoraClientException, ParserConfigurationException, IOException, SAXException, TransformerException, XPathExpressionException {
+        if ((urns == null || urns.isEmpty()) && (title == null || title.isEmpty())) return;
 
+        InputStream dcStream = fedoraRepository.getDatastreamContent(pid, "DC");
         Document dcDocument = documentBuilder.parse(dcStream);
 
-        Element newDcIdentifier = dcDocument.createElementNS(
-                "http://purl.org/dc/elements/1.1/", "ns:identifier");
-        newDcIdentifier.setTextContent(urnnbn.trim().toLowerCase());
-        dcDocument.getDocumentElement().appendChild(newDcIdentifier);
+        if (urns != null) {
+            for (String urnnbn : urns) {
+                String urn = urnnbn.trim().toLowerCase();
+                if (!(boolean) xPath.compile("//ns:identifier[text()='" + urn + "']").evaluate(dcDocument, XPathConstants.BOOLEAN)) {
+                    Element newDcIdentifier = dcDocument.createElementNS(
+                            "http://purl.org/dc/elements/1.1/", "identifier");
+                    newDcIdentifier.setTextContent(urn);
+                    dcDocument.getDocumentElement().appendChild(newDcIdentifier);
+                }
+            }
+        }
+
+        if ((title != null) && (!title.isEmpty())) {
+            Element dcTitle = (Element) dcDocument.getElementsByTagNameNS("http://purl.org/dc/elements/1.1/", "title").item(0);
+            dcTitle.setTextContent(title);
+        }
 
         InputStream modifiedDcStream = IOUtils.toInputStream(
                 DOMSerializer.toString(dcDocument));

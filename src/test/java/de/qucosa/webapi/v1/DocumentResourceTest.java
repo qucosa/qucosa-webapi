@@ -482,7 +482,7 @@ public class DocumentResourceTest {
                 )
         );
 
-        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+        mockMvc.perform(put(DOCUMENT_PUT_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .content(
@@ -501,6 +501,92 @@ public class DocumentResourceTest {
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
         assertXpathExists("//oai:dc/ns:identifier[text()='urn:nbn:de:slub-dresden:qucosa:47116']", control);
         assertXpathExists("//oai:dc/ns:identifier[text()='" + DEFAULT_URN_PREFIX + "-47118']", control);
+    }
+
+    @Test
+    public void updatedDublinCoreTitle() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Mc Donalds</Value></TitleMain>" +
+                                "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "DC")).thenReturn(
+                IOUtils.toInputStream(
+                        "<oai:dc xmlns:oai=\"http://www.openarchives.org/OAI/2.0/oai_dc/\">" +
+                                "<ns:title xmlns:ns=\"http://purl.org/dc/elements/1.1/\">Mc Donalds</ns:title>" +
+                                "<ns:identifier xmlns:ns=\"http://purl.org/dc/elements/1.1/\">urn:nbn:de:slub-dresden:qucosa:47116" +
+                                "</ns:identifier>" +
+                                "</oai:dc>"
+                )
+        );
+
+        mockMvc.perform(put(DOCUMENT_PUT_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository, atLeastOnce())
+                .modifyDatastreamContent(eq("qucosa:4711"), eq("DC"), eq("text/xml"),
+                        argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+        assertXpathExists("//oai:dc/ns:title[text()='Macbeth']", control);
+    }
+
+    @Test
+    public void addsNewIdentifierToDCDatastreamOnlyOnce() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(true);
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "<IdentifierUrn><Value>urn:nbn:de:slub-dresden:qucosa:47116</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "DC")).thenReturn(
+                IOUtils.toInputStream(
+                        "<oai:dc xmlns:oai=\"http://www.openarchives.org/OAI/2.0/oai_dc/\">" +
+                                "<ns:title xmlns:ns=\"http://purl.org/dc/elements/1.1/\">Macbeth</ns:title>" +
+                                "<ns:identifier xmlns:ns=\"http://purl.org/dc/elements/1.1/\">urn:nbn:de:slub-dresden:qucosa:47116" +
+                                "</ns:identifier>" +
+                                "</oai:dc>"
+                )
+        );
+
+        mockMvc.perform(put(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<IdentifierUrn><Value>urn:nbn:de:slub-dresden:qucosa:47116</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository, atLeastOnce())
+                .modifyDatastreamContent(eq("qucosa:4711"), eq("DC"), eq("text/xml"),
+                        argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+        assertXpathNotExists("//oai:dc/ns:identifier[2]", control);
     }
 
     @Test
@@ -684,6 +770,27 @@ public class DocumentResourceTest {
 
         verify(fedoraRepository, atLeastOnce())
                 .modifyObjectMetadata(eq("qucosa:4711"), eq("A"), anyString(), eq("qucosa"));
+    }
+
+    @Test
+    public void getDocumentSkipsEmptyFields() throws Exception {
+        when(fedoraRepository.getDatastreamContent("qucosa:4711", "QUCOSA-XML")).thenReturn(
+                IOUtils.toInputStream(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "<TitleSub><Value>The Scottish play</Value></TitleSub>" +
+                                "<TitleSub/>" +
+                                "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )
+        );
+
+        mockMvc.perform(get(DOCUMENT_PUT_URL_WITHOUT_PARAMS)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml")))
+                .andExpect(status().isOk())
+                .andExpect(xpath("//TitleSub[not(node())]").doesNotExist());
     }
 
 }
