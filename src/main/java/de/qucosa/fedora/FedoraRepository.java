@@ -98,6 +98,18 @@ public class FedoraRepository {
         return fr.getEntityInputStream();
     }
 
+    public void modifyDatastreamContent(String pid, String dsid, String mimeType, InputStream input) throws FedoraClientException {
+        FedoraResponse response = fedoraClient.execute(
+                new ModifyDatastream(pid, dsid)
+                        .content(input)
+                        .mimeType(mimeType)
+        );
+        int status = response.getStatus();
+        if (status != 200) {
+            throw new FedoraClientException(status, "Error writing modifying datastream content.");
+        }
+    }
+
     public List<Tuple<String>> getSuccessorPIDs(String pid, String relationPredicate) throws FedoraClientException, IOException {
         ArrayList<Tuple<String>> result = new ArrayList<>();
         String query = "select ?constituent ?constituent_urn ?constituent_title where { " +
@@ -131,6 +143,21 @@ public class FedoraRepository {
     public boolean hasObject(String pid) throws FedoraClientException {
         FindObjectsResponse findObjectsResponse = new FindObjects().query("pid%3D" + pid).pid().execute(fedoraClient);
         return (findObjectsResponse.getPids().size() > 0);
+    }
+
+    public void modifyObjectMetadata(String pid, String state, String label, String owner)
+            throws FedoraClientException {
+        ModifyObject modifyObjectRequest = new ModifyObject(pid);
+
+        if ((state != null) && (! state.isEmpty())) modifyObjectRequest.state(state);
+        if ((label != null) && (! label.isEmpty())) modifyObjectRequest.label(label);
+        if ((owner != null) && (! owner.isEmpty())) modifyObjectRequest.ownerId(owner);
+
+        FedoraResponse response = fedoraClient.execute(modifyObjectRequest);
+        int status = response.getStatus();
+        if (status != 200) {
+            throw new FedoraClientException(status, "Error writing modifying object properties.");
+        }
     }
 
     private void closeIfNotNull(FedoraResponse fr) {

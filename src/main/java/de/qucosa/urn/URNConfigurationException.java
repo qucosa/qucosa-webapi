@@ -15,26 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.webapi.v1;
+package de.qucosa.urn;
 
-import de.qucosa.util.DOMSerializer;
-import org.w3c.dom.Document;
-
-public class BadQucosaDocumentException extends Exception {
-
-    private final Document document;
-    private String serializedDocument = "";
-
-    public BadQucosaDocumentException(String msg, Document document) {
+public class URNConfigurationException extends Exception {
+    public URNConfigurationException(String msg) {
         super(msg);
-        this.document = document;
     }
-
-    public String getXml() {
-        if (document != null) {
-            serializedDocument = DOMSerializer.toString(document);
-        }
-        return serializedDocument;
-    }
-
 }

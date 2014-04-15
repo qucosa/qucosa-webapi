@@ -35,7 +35,7 @@ class ResourceExceptionHandler extends ResponseEntityExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler
     public void generalExceptionHandler(Throwable ex) {
-        log.error(ex);
+        log.error(ex.getMessage(), ex);
     }
 
     @ExceptionHandler(FedoraClientException.class)
