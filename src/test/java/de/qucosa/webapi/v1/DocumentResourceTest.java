@@ -262,6 +262,32 @@ public class DocumentResourceTest {
     }
 
     @Test
+    public void addsDocumentIdOnCreation() throws Exception {
+        when(fedoraRepository.mintPid("qucosa")).thenReturn("qucosa:4711");
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<DigitalObjectDocument> argCapt = ArgumentCaptor.forClass(DigitalObjectDocument.class);
+        verify(fedoraRepository)
+                .ingest(argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(argCapt.getValue().xmlText());
+        assertXpathEvaluatesTo("4711", "//Opus/Opus_Document/DocumentId", control);
+    }
+
+    @Test
     public void generatedURNIsEncodedCorrectly() throws Exception {
         mockMvc.perform(post(DOCUMENT_POST_URL)
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))

@@ -197,9 +197,20 @@ class DocumentResource {
 
         FedoraObjectBuilder fob = buildDocument(qucosaDocument);
 
-        String pid = ensurePID(fob);
-        assertPidIsNotUsed(pid);
+        String pid;
+        if (hasPID(fob)) {
+            pid = fob.pid();
+            assertPidIsNotUsed(pid);
+        } else {
+            pid = fedoraRepository.mintPid("qucosa");
+            fob.pid(pid);
+        }
+
         String id = pid.substring("qucosa:".length());
+
+        if (!hasId(qucosaDocument)) {
+            addDocumentId(qucosaDocument, id);
+        }
 
         if (!hasURN(fob)) try {
             String urnnbn = generateUrnString(libraryNetworkAbbreviation, libraryIdentifier, prefix, id);
@@ -298,6 +309,17 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void addDocumentId(Document qucosaDocument, String id) {
+        Element elDocumentId = qucosaDocument.createElement("DocumentId");
+        Text elText = qucosaDocument.createTextNode(id);
+        elDocumentId.appendChild(elText);
+        qucosaDocument.getElementsByTagName("Opus_Document").item(0).appendChild(elDocumentId);
+    }
+
+    private boolean hasId(Document doc) throws XPathExpressionException {
+        return (!xPath.evaluate("//DocumentId", doc).isEmpty());
     }
 
     private Set<String> getIdentifierUrnValueSet(Document updateDocument) {
@@ -456,17 +478,6 @@ class DocumentResource {
             result &= ((s != null) && (!s.isEmpty()));
         }
         return result;
-    }
-
-    private String ensurePID(FedoraObjectBuilder fob) throws FedoraClientException {
-        String pid;
-        if (hasPID(fob)) {
-            pid = fob.pid();
-        } else {
-            pid = fedoraRepository.mintPid("qucosa");
-            fob.pid(pid);
-        }
-        return pid;
     }
 
     private void assertPidIsNotUsed(String pid) throws ResourceConflictException, FedoraClientException {
