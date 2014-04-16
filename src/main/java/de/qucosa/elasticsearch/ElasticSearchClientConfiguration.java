@@ -17,22 +17,27 @@
 
 package de.qucosa.elasticsearch;
 
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+public class ElasticSearchClientConfiguration {
 
-@Configuration
-public class ElasticSearchClientFactory {
+    private final String cluster;
+    private final String host;
+    private final int port;
 
-    @Bean
-    public Client elasticSearchClient(ElasticSearchClientConfiguration configuration) {
-        Settings esSettings = ImmutableSettings.settingsBuilder()
-                .put("cluster.name", configuration.getCluster())
-                .put("client.transport.sniff", true)
-                .build();
-        return new ElasticSearchClient(esSettings, configuration.getHost(), configuration.getPort());
+    public ElasticSearchClientConfiguration(String cluster, String host, int port) {
+        this.cluster = cluster;
+        this.host = host;
+        this.port = port;
     }
 
+    public String getCluster() {
+        return cluster;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
 }

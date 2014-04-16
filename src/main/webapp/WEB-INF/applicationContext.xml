@@ -45,6 +45,12 @@
 
     <import resource="file:${QUCOSA_HOME}/config/spring/*.xml"/>
 
+    <bean id="elasticSearchClientConfiguration" class="de.qucosa.elasticsearch.ElasticSearchClientConfiguration">
+        <constructor-arg index="0" value="${es.cluster}"/>
+        <constructor-arg index="1" value="${es.host}"/>
+        <constructor-arg index="2" value="${es.port}"/>
+    </bean>
+
     <bean id="roleVoter" class="org.springframework.security.access.vote.RoleHierarchyVoter">
         <constructor-arg ref="roleHierarchy"/>
     </bean>
