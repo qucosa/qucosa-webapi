@@ -36,11 +36,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.stream.XMLOutputFactory;
@@ -54,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 
-@Controller
+@RestController
 @RequestMapping(produces = {"application/xml; charset=UTF-8", "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
 public class SearchResource {
 
@@ -114,7 +113,6 @@ public class SearchResource {
     }
 
     @RequestMapping(value = "/search", method = RequestMethod.GET)
-    @ResponseBody
     public ResponseEntity<String> search(@RequestParam Map<String, String> requestParameterMap) throws Exception {
         try {
             Map<String, String> queries = new HashMap<>();

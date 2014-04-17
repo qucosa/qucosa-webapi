@@ -33,7 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
@@ -58,7 +57,7 @@ import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.util.*;
 
-@Controller
+@RestController
 @Scope("request")
 @RequestMapping(produces = {"application/xml; charset=UTF-8",
         "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
@@ -144,7 +143,6 @@ class DocumentResource {
     }
 
     @RequestMapping(value = "/document", method = RequestMethod.GET)
-    @ResponseBody
     public ResponseEntity<String> listAll() throws IOException, FedoraClientException, XMLStreamException {
         List<String> pids = fedoraRepository.getPIDsByPattern("^qucosa:");
 
@@ -172,7 +170,6 @@ class DocumentResource {
     }
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
-    @ResponseBody
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws FedoraClientException, IOException, SAXException, TransformerException {
         InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
         Document doc = documentBuilder.parse(dsContent);
@@ -183,7 +180,6 @@ class DocumentResource {
 
     @RequestMapping(value = "/document", method = RequestMethod.POST,
             consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
-    @ResponseBody
     public ResponseEntity<String> addDocument(
             @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,
             @RequestParam(value = "nis2", required = false) String libraryIdentifier,
@@ -234,7 +230,6 @@ class DocumentResource {
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.PUT,
             consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
-    @ResponseBody
     public ResponseEntity<String> updateDocument(
             @PathVariable String qucosaID,
             @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,

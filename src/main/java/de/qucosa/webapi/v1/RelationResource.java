@@ -24,11 +24,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -37,7 +36,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
 
-@Controller
+@RestController
 @Scope("request")
 @RequestMapping(produces = {"application/xml; charset=UTF-8",
         "application/vnd.slub.qucosa-v1+xml; charset=UTF-8"})
@@ -51,7 +50,6 @@ class RelationResource {
     }
 
     @RequestMapping(value = "/relation/urn/{URN}", method = RequestMethod.GET)
-    @ResponseBody
     public ResponseEntity<String> describeRelationships(@PathVariable String URN) throws XMLStreamException, IOException, FedoraClientException {
         String pid = fedoraRepository.getPIDByIdentifier(URN);
         List<Tuple<String>> constituentPredecessorPids = fedoraRepository.getPredecessorPIDs(pid, FedoraRepository.RELATION_CONSTITUENT);

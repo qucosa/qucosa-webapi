@@ -129,7 +129,7 @@ public class DocumentResourceTest {
 
         String response = documentResource.listAll().getBody();
 
-        assertXpathEvaluatesTo(httpServletRequest.getRequestURL() + "/document/1234", "/Opus/DocumentList/Document/@xlink:href", response);
+        assertXpathEvaluatesTo(httpServletRequest.getRequestURL() + ":80/document/1234", "/Opus/DocumentList/Document/@xlink:href", response);
         assertXpathEvaluatesTo("1234", "/Opus/DocumentList/Document/@xlink:nr", response);
         assertXpathEvaluatesTo("simple", "/Opus/DocumentList/Document/@xlink:type", response);
     }
