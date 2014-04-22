@@ -548,9 +548,22 @@ class DocumentResource {
             fob.addURN(urnNodes.item(i).getNodeValue());
         }
 
+        String state;
+        switch (xPath.evaluate("/Opus/Opus_Document/ServerState", qucosaDoc)) {
+            case "published":
+                state = "A";
+                break;
+            case "deleted":
+                state = "D";
+                break;
+            default:
+                state = "I";
+        }
+
         fob.ownerId("qucosa");
         fob.parentCollectionPid("qucosa:qucosa");
         fob.qucosaXmlDocument(qucosaDoc);
+        fob.state(state);
 
         return fob;
     }

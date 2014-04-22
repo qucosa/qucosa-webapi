@@ -819,4 +819,60 @@ public class DocumentResourceTest {
                 .andExpect(xpath("//TitleSub[not(node())]").doesNotExist());
     }
 
+    @Test
+    public void ingestSetsObjectStateToActiveIfServerStateIsPublished() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(false);
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
+                                "<ServerState>published</ServerState>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<DigitalObjectDocument> argCapt = ArgumentCaptor.forClass(DigitalObjectDocument.class);
+        verify(fedoraRepository)
+                .ingest(argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(argCapt.getValue().xmlText());
+        assertXpathEvaluatesTo("A", "//fox:objectProperties/fox:property[@NAME='info:fedora/fedora-system:def/model#state']/@VALUE", control);
+    }
+
+    @Test
+    public void ingestSetsObjectStateToDeletedIfServerStateIsDeleted() throws Exception {
+        when(fedoraRepository.hasObject("qucosa:4711")).thenReturn(false);
+        mockMvc.perform(post(DOCUMENT_POST_URL)
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<DocumentId>4711</DocumentId>" +
+                                "<ServerState>deleted</ServerState>" +
+                                "<PersonAuthor>" +
+                                "<LastName>Shakespear</LastName>" +
+                                "<FirstName>William</FirstName>" +
+                                "</PersonAuthor>" +
+                                "<TitleMain><Value>Macbeth</Value></TitleMain>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<DigitalObjectDocument> argCapt = ArgumentCaptor.forClass(DigitalObjectDocument.class);
+        verify(fedoraRepository)
+                .ingest(argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(argCapt.getValue().xmlText());
+        assertXpathEvaluatesTo("D", "//fox:objectProperties/fox:property[@NAME='info:fedora/fedora-system:def/model#state']/@VALUE", control);
+    }
+
 }
