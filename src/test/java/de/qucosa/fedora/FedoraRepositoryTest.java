@@ -19,10 +19,7 @@ package de.qucosa.fedora;
 
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import com.yourmediashelf.fedora.client.request.GetDatastreamDissemination;
-import com.yourmediashelf.fedora.client.request.GetNextPID;
-import com.yourmediashelf.fedora.client.request.ModifyDatastream;
-import com.yourmediashelf.fedora.client.request.ModifyObject;
+import com.yourmediashelf.fedora.client.request.*;
 import com.yourmediashelf.fedora.client.response.FedoraResponse;
 import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
 import com.yourmediashelf.fedora.client.response.GetNextPIDResponse;
@@ -35,6 +32,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -99,6 +97,15 @@ public class FedoraRepositoryTest {
         fedoraRepository.modifyObjectMetadata("qucosa:4711", "A", "new-label", "qucosa");
 
         verify(fedoraClient).execute(any(ModifyObject.class));
+    }
+
+    @Test
+    public void returnTrueIfDatastreamExists() throws Exception {
+        GetDatastreamResponse dsResponse = mock(GetDatastreamResponse.class);
+        when(dsResponse.getStatus()).thenReturn(200);
+        when(fedoraClient.execute(any(GetDatastream.class))).thenReturn(dsResponse);
+
+        assertTrue(fedoraRepository.hasDatastream("test:1", "TEST-DS"));
     }
 
 }

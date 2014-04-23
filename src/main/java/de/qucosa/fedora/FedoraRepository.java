@@ -145,13 +145,18 @@ public class FedoraRepository {
         return (findObjectsResponse.getPids().size() > 0);
     }
 
+    public boolean hasDatastream(String pid, String dsid) throws FedoraClientException {
+        GetDatastreamResponse response = (GetDatastreamResponse) fedoraClient.execute(new GetDatastream(pid, dsid));
+        return (response.getStatus() == 200);
+    }
+
     public void modifyObjectMetadata(String pid, String state, String label, String owner)
             throws FedoraClientException {
         ModifyObject modifyObjectRequest = new ModifyObject(pid);
 
-        if ((state != null) && (! state.isEmpty())) modifyObjectRequest.state(state);
-        if ((label != null) && (! label.isEmpty())) modifyObjectRequest.label(label);
-        if ((owner != null) && (! owner.isEmpty())) modifyObjectRequest.ownerId(owner);
+        if ((state != null) && (!state.isEmpty())) modifyObjectRequest.state(state);
+        if ((label != null) && (!label.isEmpty())) modifyObjectRequest.label(label);
+        if ((owner != null) && (!owner.isEmpty())) modifyObjectRequest.ownerId(owner);
 
         FedoraResponse response = fedoraClient.execute(modifyObjectRequest);
         int status = response.getStatus();

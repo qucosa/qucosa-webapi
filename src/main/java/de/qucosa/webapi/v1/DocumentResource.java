@@ -171,10 +171,12 @@ class DocumentResource {
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws FedoraClientException, IOException, SAXException, TransformerException {
-        InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
+        String pid = "qucosa:".concat(qucosaID);
+        InputStream dsContent = fedoraRepository.getDatastreamContent(pid, "QUCOSA-XML");
         Document doc = documentBuilder.parse(dsContent);
         doc.normalizeDocument();
         removeEmtpyFields(doc);
+        removeFileElementsWithoutCorrespondingDatastream(pid, doc);
         return new ResponseEntity<>(DOMSerializer.toString(doc), HttpStatus.OK);
     }
 
@@ -304,6 +306,22 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void removeFileElementsWithoutCorrespondingDatastream(String pid, Document doc) throws FedoraClientException {
+        Element root = (Element) doc.getElementsByTagName("Opus_Document").item(0);
+        NodeList fileNodes = root.getElementsByTagName("File");
+        for (int i = 0; i < fileNodes.getLength(); i++) {
+            Node fileNode = fileNodes.item(i);
+            Node idAttr = fileNode.getAttributes().getNamedItem("id");
+            if (idAttr != null) {
+                String fid = idAttr.getTextContent();
+                String dsid = "QUCOSA-ATT-".concat(fid);
+                if (!fedoraRepository.hasDatastream(pid, dsid)) {
+                    root.removeChild(fileNode);
+                }
+            }
+        }
     }
 
     private void addDocumentId(Document qucosaDocument, String id) {
