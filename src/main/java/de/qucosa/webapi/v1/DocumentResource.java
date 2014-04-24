@@ -201,6 +201,7 @@ class DocumentResource {
 
         Document qucosaDocument = documentBuilder.parse(IOUtils.toInputStream(body));
         assertBasicDocumentProperties(qucosaDocument);
+        assertFileElementProperties(qucosaDocument);
 
         FedoraObjectBuilder fob = buildDocument(qucosaDocument);
 
@@ -237,14 +238,14 @@ class DocumentResource {
         try {
             fedoraRepository.ingest(dod);
             handleFilesAndUpdateQucosaXMLDatastream(qucosaDocument, pid);
-        } catch (FedoraClientException fex) {
-            log.error("Error ingesting object '{}' with PID '{}'. Rolling back ingest.", fex.getMessage(), pid);
+        } catch (Exception ex) {
+            log.error("Error ingesting object '{}' with PID '{}'. Rolling back ingest.", ex.getMessage(), pid);
             try {
                 fedoraRepository.purge(pid);
             } catch (FedoraClientException f) {
                 log.warn("Rollback of '{}' ingest failed: '{}'", pid, f.getMessage());
             }
-            throw fex;
+            throw ex;
         }
 
         return new ResponseEntity<>(getDocumentCreatedResponse(id), HttpStatus.CREATED);
@@ -328,8 +329,19 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
+    private void assertFileElementProperties(Document qucosaDocument) throws BadQucosaDocumentException {
+        NodeList fileNodes = qucosaDocument.getElementsByTagName("File");
+        for (int i = 0; i < fileNodes.getLength(); i++) {
+            Element fileElement = (Element) fileNodes.item(i);
+            Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
+            if ((tempFile == null) || (tempFile.getTextContent().isEmpty())) {
+                throw new BadQucosaDocumentException("Invalid File element found. TempFile elements is required.", qucosaDocument);
+            }
+        }
+    }
+
     private void handleFilesAndUpdateQucosaXMLDatastream(Document qucosaXml, String pid)
-            throws FedoraClientException, IOException, SAXException, URISyntaxException {
+            throws Exception {
         boolean isDocumentModified = handleFileElements(pid, qucosaXml);
         if (isDocumentModified) {
             InputStream inputStream = IOUtils.toInputStream(
@@ -339,31 +351,34 @@ class DocumentResource {
     }
 
     private boolean handleFileElements(String pid, Document qucosaXml)
-            throws IOException, FedoraClientException, URISyntaxException {
+            throws Exception {
+
         boolean modified = false;
         Element root = (Element) qucosaXml.getElementsByTagName("Opus_Document").item(0);
         NodeList fileNodes = root.getElementsByTagName("File");
+
         for (int i = 0; i < fileNodes.getLength(); i++) {
             Element fileElement = (Element) fileNodes.item(i);
             Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
             Node pathName = fileElement.getElementsByTagName("PathName").item(0);
-            if (tempFile != null) {
-                String id = pid.substring("qucosa:".length());
-                String tmpFileName = tempFile.getTextContent();
-                String targetFilename = pathName.getTextContent();
-                URI fileUri = fileHandlingService.copyTempfileToTargetFileSpace(tmpFileName, targetFilename, id);
-                String label = fileElement.getElementsByTagName("Label").item(0).getTextContent();
-                String dsid = DSID_QUCOSA_ATT + i;
-                fedoraRepository.createExternalReferenceDatastream(
-                        pid,
-                        dsid,
-                        label,
-                        fileUri);
-                fileElement.setAttribute("id", String.valueOf(i));
-                fileElement.removeChild(tempFile);
-                modified = true;
-            }
+
+            String id = pid.substring("qucosa:".length());
+            String tmpFileName = tempFile.getTextContent();
+            String targetFilename = pathName.getTextContent();
+            URI fileUri = fileHandlingService.copyTempfileToTargetFileSpace(tmpFileName, targetFilename, id);
+            String label = fileElement.getElementsByTagName("Label").item(0).getTextContent();
+            String dsid = DSID_QUCOSA_ATT + i;
+            fedoraRepository.createExternalReferenceDatastream(
+                    pid,
+                    dsid,
+                    label,
+                    fileUri);
+            fileElement.setAttribute("id", String.valueOf(i));
+            fileElement.removeChild(tempFile);
+            modified = true;
+
         }
+
         return modified;
     }
 

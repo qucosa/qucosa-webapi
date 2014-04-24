@@ -229,6 +229,29 @@ public class DocumentResourceFileTest {
         assertXpathNotExists("/Opus/Opus_Document/File/TempFile", control);
     }
 
+    @Test
+    public void returnBadRequestOnPostFileElementWithoutTempFileValue() throws Exception {
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "   <DocumentId>4711</DocumentId>" +
+                                "   <TitleMain>" +
+                                "       <Value>Macbeth</Value>" +
+                                "   </TitleMain>" +
+                                "   <File>" +
+                                "       <PathName>1057131155078-6506.pdf</PathName>" +
+                                "       <Label>Volltextdokument (PDF)</Label>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )).andExpect(status().isBadRequest());
+    }
+
     private void mockDatastreamContent(String pid, String dsid, String xml) throws FedoraClientException {
         when(fedoraRepository.getDatastreamContent(eq(pid), eq(dsid))).thenReturn(IOUtils.toInputStream(xml));
     }
