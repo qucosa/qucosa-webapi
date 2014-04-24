@@ -24,10 +24,8 @@ import com.yourmediashelf.fedora.client.response.*;
 import de.qucosa.util.Tuple;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,6 +96,19 @@ public class FedoraRepository {
         return fr.getEntityInputStream();
     }
 
+    public void createExternalReferenceDatastream(String pid, String dsid, String label, URI target)
+            throws FedoraClientException, IOException {
+        fedoraClient.execute(
+                new AddDatastream(pid, dsid)
+                        .controlGroup("E")
+                        .checksumType("SHA-512")
+                        .dsState("A")
+                        .versionable(false)
+                        .dsLabel(label)
+                        .dsLocation(target.toASCIIString())
+        );
+    }
+
     public void modifyDatastreamContent(String pid, String dsid, String mimeType, InputStream input) throws FedoraClientException {
         FedoraResponse response = fedoraClient.execute(
                 new ModifyDatastream(pid, dsid)
@@ -163,6 +174,10 @@ public class FedoraRepository {
         if (status != 200) {
             throw new FedoraClientException(status, "Error writing modifying object properties.");
         }
+    }
+
+    public void purge(String pid) throws FedoraClientException {
+        fedoraClient.execute(new PurgeObject(pid));
     }
 
     private void closeIfNotNull(FedoraResponse fr) {

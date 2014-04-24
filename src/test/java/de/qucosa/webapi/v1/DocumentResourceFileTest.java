@@ -24,10 +24,9 @@ import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -37,13 +36,22 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 
+import java.io.InputStream;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.Matchers.eq;
+import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
+import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
+import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
@@ -52,11 +60,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 public class DocumentResourceFileTest {
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
-
     @Autowired
     private FedoraRepository fedoraRepository;
+    @Autowired
+    private FileHandlingService fileHandlingService;
     @Autowired
     private WebApplicationContext wac;
     private MockMvc mockMvc;
@@ -119,6 +126,107 @@ public class DocumentResourceFileTest {
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml")))
                 .andExpect(status().isOk())
                 .andExpect(xpath("/Opus/Opus_Document/File").doesNotExist());
+    }
+
+    @Test
+    public void createsCorrespondingDatastreamWhenAddingDocument() throws Exception {
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "   <DocumentId>4711</DocumentId>" +
+                                "       <PersonAuthor>" +
+                                "           <LastName>Shakespear</LastName>" +
+                                "           <FirstName>William</FirstName>" +
+                                "       </PersonAuthor>" +
+                                "   <TitleMain>" +
+                                "       <Value>Macbeth</Value>" +
+                                "   </TitleMain>" +
+                                "   <IdentifierUrn>" +
+                                "       <Value>urn:nbn:foo-4711</Value>" +
+                                "   </IdentifierUrn>" +
+                                "   <File>" +
+                                "       <PathName>1057131155078-6506.pdf</PathName>" +
+                                "       <Label>Volltextdokument (PDF)</Label>" +
+                                "       <TempFile>tmp-4711.pdf</TempFile>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        verify(fedoraRepository).createExternalReferenceDatastream(
+                eq("qucosa:4711"),
+                eq("QUCOSA-ATT-0"),
+                eq("Volltextdokument (PDF)"),
+                any(URI.class));
+    }
+
+    @Test
+    public void triggersMovingOfTempFiles() throws Exception {
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "   <DocumentId>4711</DocumentId>" +
+                                "   <TitleMain>" +
+                                "       <Value>Macbeth</Value>" +
+                                "   </TitleMain>" +
+                                "   <File>" +
+                                "       <PathName>1057131155078-6506.pdf</PathName>" +
+                                "       <Label>Volltextdokument (PDF)</Label>" +
+                                "       <TempFile>tmp-4711.pdf</TempFile>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ));
+
+        verify(fileHandlingService).copyTempfileToTargetFileSpace(
+                eq("tmp-4711.pdf"),
+                eq("1057131155078-6506.pdf"),
+                eq("4711"));
+    }
+
+    @Test
+    public void modifiesQucosaXMLDatastream() throws Exception {
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "   <DocumentId>4711</DocumentId>" +
+                                "   <TitleMain>" +
+                                "       <Value>Macbeth</Value>" +
+                                "   </TitleMain>" +
+                                "   <File>" +
+                                "       <PathName>1057131155078-6506.pdf</PathName>" +
+                                "       <Label>Volltextdokument (PDF)</Label>" +
+                                "       <TempFile>tmp-4711.pdf</TempFile>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ));
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository).modifyDatastreamContent(
+                eq("qucosa:4711"), eq("QUCOSA-XML"),
+                anyString(), argCapt.capture());
+
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+        assertXpathExists("/Opus/Opus_Document/File[@id='0']", control);
+        assertXpathExists("/Opus/Opus_Document/File[PathName='1057131155078-6506.pdf']", control);
+        assertXpathNotExists("/Opus/Opus_Document/File/TempFile", control);
     }
 
     private void mockDatastreamContent(String pid, String dsid, String xml) throws FedoraClientException {

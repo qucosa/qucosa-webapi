@@ -54,6 +54,7 @@ import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -65,6 +66,9 @@ class DocumentResource {
 
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
+    public static final String DSID_QUCOSA_XML = "QUCOSA-XML";
+    public static final String MIMETYPE_QUCOSA_V1_XML = "application/vnd.slub.qucosa-v1+xml";
+    public static final String DSID_QUCOSA_ATT = "QUCOSA-ATT-";
     private static final XPathFactory xPathFactory;
     private static final XPath xPath;
 
@@ -103,12 +107,19 @@ class DocumentResource {
     final private FedoraRepository fedoraRepository;
     @Autowired
     private HttpServletRequest httpServletRequest;
+
     private URNConfiguration urnConfiguration;
+    private FileHandlingService fileHandlingService;
 
     @Autowired
-    public DocumentResource(FedoraRepository fedoraRepository, URNConfiguration urnConfiguration) throws ParserConfigurationException, TransformerConfigurationException {
+    public DocumentResource(
+            FedoraRepository fedoraRepository,
+            URNConfiguration urnConfiguration,
+            FileHandlingService fileHandlingService)
+            throws ParserConfigurationException, TransformerConfigurationException {
         this.fedoraRepository = fedoraRepository;
         this.urnConfiguration = urnConfiguration;
+        this.fileHandlingService = fileHandlingService;
 
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
@@ -172,7 +183,7 @@ class DocumentResource {
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws FedoraClientException, IOException, SAXException, TransformerException {
         String pid = "qucosa:".concat(qucosaID);
-        InputStream dsContent = fedoraRepository.getDatastreamContent(pid, "QUCOSA-XML");
+        InputStream dsContent = fedoraRepository.getDatastreamContent(pid, DSID_QUCOSA_XML);
         Document doc = documentBuilder.parse(dsContent);
         doc.normalizeDocument();
         removeEmtpyFields(doc);
@@ -181,16 +192,14 @@ class DocumentResource {
     }
 
     @RequestMapping(value = "/document", method = RequestMethod.POST,
-            consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
+            consumes = {"text/xml", "application/xml", MIMETYPE_QUCOSA_V1_XML})
     public ResponseEntity<String> addDocument(
             @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,
             @RequestParam(value = "nis2", required = false) String libraryIdentifier,
             @RequestParam(value = "niss", required = false) String prefix,
             @RequestBody String body) throws Exception {
 
-        Document qucosaDocument = DocumentBuilderFactory.newInstance()
-                .newDocumentBuilder()
-                .parse(IOUtils.toInputStream(body));
+        Document qucosaDocument = documentBuilder.parse(IOUtils.toInputStream(body));
         assertBasicDocumentProperties(qucosaDocument);
 
         FedoraObjectBuilder fob = buildDocument(qucosaDocument);
@@ -224,14 +233,25 @@ class DocumentResource {
         if (log.isDebugEnabled()) {
             dumpToStdOut(dod);
         }
-        fedoraRepository.ingest(dod);
 
-        String okResponse = getDocumentCreatedResponse(id);
-        return new ResponseEntity<>(okResponse, HttpStatus.CREATED);
+        try {
+            fedoraRepository.ingest(dod);
+            handleFilesAndUpdateQucosaXMLDatastream(qucosaDocument, pid);
+        } catch (FedoraClientException fex) {
+            log.error("Error ingesting object '{}' with PID '{}'. Rolling back ingest.", fex.getMessage(), pid);
+            try {
+                fedoraRepository.purge(pid);
+            } catch (FedoraClientException f) {
+                log.warn("Rollback of '{}' ingest failed: '{}'", pid, f.getMessage());
+            }
+            throw fex;
+        }
+
+        return new ResponseEntity<>(getDocumentCreatedResponse(id), HttpStatus.CREATED);
     }
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.PUT,
-            consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
+            consumes = {"text/xml", "application/xml", MIMETYPE_QUCOSA_V1_XML})
     public ResponseEntity<String> updateDocument(
             @PathVariable String qucosaID,
             @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,
@@ -250,7 +270,7 @@ class DocumentResource {
 
         Document qucosaDocument =
                 documentBuilder.parse(fedoraRepository.getDatastreamContent(
-                        pid, "QUCOSA-XML"));
+                        pid, DSID_QUCOSA_XML));
 
         Set<String> updateFields = updateWith(qucosaDocument, updateDocument);
         assertBasicDocumentProperties(qucosaDocument);
@@ -275,7 +295,7 @@ class DocumentResource {
 
         InputStream inputStream = IOUtils.toInputStream(
                 DOMSerializer.toString(qucosaDocument));
-        fedoraRepository.modifyDatastreamContent(pid, "QUCOSA-XML", "application/vnd.slub.qucosa-v1+xml", inputStream);
+        fedoraRepository.modifyDatastreamContent(pid, DSID_QUCOSA_XML, MIMETYPE_QUCOSA_V1_XML, inputStream);
 
 
         String state = null;
@@ -306,6 +326,45 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void handleFilesAndUpdateQucosaXMLDatastream(Document qucosaXml, String pid)
+            throws FedoraClientException, IOException, SAXException, URISyntaxException {
+        boolean isDocumentModified = handleFileElements(pid, qucosaXml);
+        if (isDocumentModified) {
+            InputStream inputStream = IOUtils.toInputStream(
+                    DOMSerializer.toString(qucosaXml));
+            fedoraRepository.modifyDatastreamContent(pid, DSID_QUCOSA_XML, MIMETYPE_QUCOSA_V1_XML, inputStream);
+        }
+    }
+
+    private boolean handleFileElements(String pid, Document qucosaXml)
+            throws IOException, FedoraClientException, URISyntaxException {
+        boolean modified = false;
+        Element root = (Element) qucosaXml.getElementsByTagName("Opus_Document").item(0);
+        NodeList fileNodes = root.getElementsByTagName("File");
+        for (int i = 0; i < fileNodes.getLength(); i++) {
+            Element fileElement = (Element) fileNodes.item(i);
+            Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
+            Node pathName = fileElement.getElementsByTagName("PathName").item(0);
+            if (tempFile != null) {
+                String id = pid.substring("qucosa:".length());
+                String tmpFileName = tempFile.getTextContent();
+                String targetFilename = pathName.getTextContent();
+                URI fileUri = fileHandlingService.copyTempfileToTargetFileSpace(tmpFileName, targetFilename, id);
+                String label = fileElement.getElementsByTagName("Label").item(0).getTextContent();
+                String dsid = DSID_QUCOSA_ATT + i;
+                fedoraRepository.createExternalReferenceDatastream(
+                        pid,
+                        dsid,
+                        label,
+                        fileUri);
+                fileElement.setAttribute("id", String.valueOf(i));
+                fileElement.removeChild(tempFile);
+                modified = true;
+            }
+        }
+        return modified;
     }
 
     private void removeFileElementsWithoutCorrespondingDatastream(String pid, Document doc) throws FedoraClientException {
@@ -552,8 +611,9 @@ class DocumentResource {
     private FedoraObjectBuilder buildDocument(Document qucosaDoc) throws Exception {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
 
-        String pid = xPath.evaluate("/Opus/Opus_Document/DocumentId", qucosaDoc);
-        if (!pid.isEmpty()) fob.pid("qucosa:" + pid);
+        String id = xPath.evaluate("/Opus/Opus_Document/DocumentId", qucosaDoc);
+        String pid = "qucosa:" + id;
+        if (!id.isEmpty()) fob.pid(pid);
 
         String ats = buildAts(qucosaDoc);
         if (!ats.isEmpty()) fob.label(ats);
