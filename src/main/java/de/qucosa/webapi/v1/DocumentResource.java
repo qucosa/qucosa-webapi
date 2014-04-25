@@ -385,6 +385,10 @@ class DocumentResource {
     private void removeFileElementsWithoutCorrespondingDatastream(String pid, Document doc) throws FedoraClientException {
         Element root = (Element) doc.getElementsByTagName("Opus_Document").item(0);
         NodeList fileNodes = root.getElementsByTagName("File");
+
+        // removing nodes from the node list changes the node list
+        ArrayList<Node> removees = new ArrayList<>(fileNodes.getLength());
+
         for (int i = 0; i < fileNodes.getLength(); i++) {
             Node fileNode = fileNodes.item(i);
             Node idAttr = fileNode.getAttributes().getNamedItem("id");
@@ -392,10 +396,11 @@ class DocumentResource {
                 String fid = idAttr.getTextContent();
                 String dsid = "QUCOSA-ATT-".concat(fid);
                 if (!fedoraRepository.hasDatastream(pid, dsid)) {
-                    root.removeChild(fileNode);
+                    removees.add(fileNode);
                 }
             }
         }
+        for (Node n : removees) root.removeChild(n);
     }
 
     private void addDocumentId(Document qucosaDocument, String id) {
@@ -425,10 +430,17 @@ class DocumentResource {
     private void removeEmtpyFields(Document doc) {
         Element root = (Element) doc.getElementsByTagName("Opus_Document").item(0);
         NodeList childNodes = root.getChildNodes();
+
+        // removing nodes from the node list changes the node list
+        // so for iteration is not invariant.
+        ArrayList<Node> removees = new ArrayList<>(childNodes.getLength());
+
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node childNode = childNodes.item(i);
-            if (!childNode.hasChildNodes()) root.removeChild(childNode);
+            if (!childNode.hasChildNodes()) removees.add(childNode);
         }
+        for (Node n : removees) root.removeChild(n);
+
     }
 
     private String determineState(Document qucosaDocument) throws XPathExpressionException {
