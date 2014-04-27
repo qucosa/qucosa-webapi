@@ -30,11 +30,15 @@ public class FileHandlingService {
     private File tempfilesPath;
 
     public FileHandlingService(String pathToDocuments, String pathToTempFiles) throws Exception {
-        documentsPath = new File(pathToDocuments);
+        this(new File(pathToDocuments), new File(pathToTempFiles));
+    }
+
+    public FileHandlingService(File pathToDocuments, File pathToTempFiles) throws Exception {
+        documentsPath = pathToDocuments;
         assertIsDirectory(documentsPath);
         assertIsWriteable(documentsPath);
 
-        tempfilesPath = new File(pathToTempFiles);
+        tempfilesPath = pathToTempFiles;
         assertIsDirectory(tempfilesPath);
         assertIsWriteable(tempfilesPath);
     }

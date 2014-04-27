@@ -18,12 +18,14 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
+import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.fedora.FedoraObjectBuilder;
 import de.qucosa.fedora.FedoraRepository;
 import de.qucosa.urn.DnbUrnURIBuilder;
 import de.qucosa.urn.URNConfiguration;
 import de.qucosa.urn.URNConfigurationException;
 import de.qucosa.util.DOMSerializer;
+import de.qucosa.util.Tuple;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlOptions;
@@ -51,6 +53,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -273,9 +276,10 @@ class DocumentResource {
                 documentBuilder.parse(fedoraRepository.getDatastreamContent(
                         pid, DSID_QUCOSA_XML));
 
-        Set<String> updateFields = updateWith(qucosaDocument, updateDocument);
-        assertBasicDocumentProperties(qucosaDocument);
+        Tuple<Collection<String>> updateOps = updateWith(qucosaDocument, updateDocument);
 
+        Set<String> updateFields = (Set<String>) updateOps.get(0);
+        assertBasicDocumentProperties(qucosaDocument);
 
         List<String> newDcUrns = new LinkedList<>();
         if (updateFields.contains("IdentifierUrn")) {
@@ -298,7 +302,6 @@ class DocumentResource {
                 DOMSerializer.toString(qucosaDocument));
         fedoraRepository.modifyDatastreamContent(pid, DSID_QUCOSA_XML, MIMETYPE_QUCOSA_V1_XML, inputStream);
 
-
         String state = null;
         if (updateFields.contains("ServerState")) {
             state = determineState(qucosaDocument);
@@ -311,6 +314,14 @@ class DocumentResource {
         String ownerId = "qucosa";
         fedoraRepository.modifyObjectMetadata(pid, state, label, ownerId);
 
+        List<String> purgeDatastreamList = (List<String>) updateOps.get(1);
+        for (String dsid : purgeDatastreamList) {
+            DatastreamProfile datastreamProfile =
+                    fedoraRepository.getDatastreamProfile(pid, dsid);
+            String path = datastreamProfile.getDsLocation();
+            new File(path).delete();
+            fedoraRepository.purgeDatastream(pid, dsid);
+        }
 
         String okResponse = getDocumentUpdatedResponse();
         return new ResponseEntity<>(okResponse, HttpStatus.OK);
@@ -486,7 +497,7 @@ class DocumentResource {
         fedoraRepository.modifyDatastreamContent(pid, "DC", "text/xml", modifiedDcStream);
     }
 
-    private Set<String> updateWith(Document target, final Document update) {
+    private Tuple<Collection<String>> updateWith(Document target, final Document update) {
         Element targetRoot = (Element) target.getElementsByTagName("Opus_Document").item(0);
         Element updateRoot = (Element) update.getElementsByTagName("Opus_Document").item(0);
 
@@ -496,10 +507,21 @@ class DocumentResource {
             distinctUpdateFieldList.add(updateFields.item(i).getNodeName());
         }
 
+        List<String> purgeDatastreamList = new LinkedList<>();
         for (String fn : distinctUpdateFieldList) {
             // cannot use getElementsByTagName() here because it searches recursively
-            List<Node> deleteList = getChildNodesByName(targetRoot, fn);
-            for (Node n : deleteList) {
+            for (Node n : getChildNodesByName(targetRoot, fn)) {
+
+                if (n.getLocalName().equals("File")) {
+                    Node idAttr = n.getAttributes().getNamedItem("id");
+                    if (idAttr != null) {
+                        String ida = idAttr.getTextContent();
+                        if (!ida.isEmpty()) {
+                            purgeDatastreamList.add(DSID_QUCOSA_ATT.concat(ida));
+                        }
+                    }
+                }
+
                 targetRoot.removeChild(n);
             }
         }
@@ -515,7 +537,7 @@ class DocumentResource {
         }
 
         target.normalizeDocument();
-        return distinctUpdateFieldList;
+        return new Tuple(distinctUpdateFieldList, purgeDatastreamList);
     }
 
     private List<Node> getChildNodesByName(final Element targetRoot, String nodeName) {

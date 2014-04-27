@@ -21,10 +21,14 @@ import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.*;
 import com.yourmediashelf.fedora.client.response.*;
+import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.util.Tuple;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,6 +98,12 @@ public class FedoraRepository {
     public InputStream getDatastreamContent(String pid, String datastreamId) throws FedoraClientException {
         FedoraResponse fr = fedoraClient.execute(new GetDatastreamDissemination(pid, datastreamId));
         return fr.getEntityInputStream();
+    }
+
+    public DatastreamProfile getDatastreamProfile(String pid, String dsid) throws FedoraClientException {
+        DatastreamProfileResponse datastreamProfileResponse =
+                (DatastreamProfileResponse) fedoraClient.execute(new GetDatastream(pid, dsid));
+        return datastreamProfileResponse.getDatastreamProfile();
     }
 
     public void createExternalReferenceDatastream(String pid, String dsid, String label, URI target)
@@ -178,6 +188,10 @@ public class FedoraRepository {
 
     public void purge(String pid) throws FedoraClientException {
         fedoraClient.execute(new PurgeObject(pid));
+    }
+
+    public void purgeDatastream(String pid, String dsid) throws FedoraClientException {
+        fedoraClient.execute(new PurgeDatastream(pid, dsid));
     }
 
     private void closeIfNotNull(FedoraResponse fr) {
