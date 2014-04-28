@@ -139,11 +139,11 @@ public class DocumentResourceFileTest {
         File f1 = dataFolder.newFile("4711/another.pdf");
 
         DatastreamProfile dsp0 = mock(DatastreamProfile.class);
-        when(dsp0.getDsLocation()).thenReturn(f0.getAbsolutePath());
+        when(dsp0.getDsLocation()).thenReturn(f0.toURI().toASCIIString());
         when(fedoraRepository.getDatastreamProfile(eq("qucosa:4711"), eq("QUCOSA-ATT-0"))).thenReturn(dsp0);
 
         DatastreamProfile dsp1 = mock(DatastreamProfile.class);
-        when(dsp1.getDsLocation()).thenReturn(f1.getAbsolutePath());
+        when(dsp1.getDsLocation()).thenReturn(f1.toURI().toASCIIString());
         when(fedoraRepository.getDatastreamProfile(eq("qucosa:4711"), eq("QUCOSA-ATT-1"))).thenReturn(dsp1);
     }
 

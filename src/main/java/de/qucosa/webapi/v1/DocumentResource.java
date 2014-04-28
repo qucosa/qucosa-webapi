@@ -320,11 +320,12 @@ class DocumentResource {
             DatastreamProfile datastreamProfile =
                     fedoraRepository.getDatastreamProfile(pid, dsid);
             String path = datastreamProfile.getDsLocation();
-
             try {
-                Files.delete(new File(path).toPath());
+                Files.delete(
+                        new File(
+                                new URI(path)).toPath());
             } catch (IOException ex) {
-                log.error("Deleting file {} failed: {}", path, ex.getMessage());
+                log.error("Deleting file {} failed: {}", path, ex.toString());
                 log.warn("Datastream {}/{} gets purged without removing the file", pid, dsid);
             }
 
