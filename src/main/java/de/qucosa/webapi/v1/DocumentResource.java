@@ -273,6 +273,10 @@ class DocumentResource {
         assertXPathNodeExists("/Opus[@version='2.0']", "No Opus node with version '2.0'.", updateDocument);
         assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", updateDocument);
 
+        if (log.isDebugEnabled()) {
+            log.debug(DOMSerializer.toString(updateDocument));
+        }
+
         Document qucosaDocument =
                 documentBuilder.parse(fedoraRepository.getDatastreamContent(
                         pid, DSID_QUCOSA_XML));
@@ -323,7 +327,8 @@ class DocumentResource {
             try {
                 Files.delete(
                         new File(
-                                new URI(path)).toPath());
+                                new URI(path)).toPath()
+                );
             } catch (IOException ex) {
                 log.error("Deleting file {} failed: {}", path, ex.toString());
                 log.warn("Datastream {}/{} gets purged without removing the file", pid, dsid);
@@ -387,13 +392,13 @@ class DocumentResource {
             String targetFilename = pathName.getTextContent();
             URI fileUri = fileHandlingService.copyTempfileToTargetFileSpace(tmpFileName, targetFilename, id);
             String label = fileElement.getElementsByTagName("Label").item(0).getTextContent();
-            String dsid = DSID_QUCOSA_ATT + i;
+            String dsid = DSID_QUCOSA_ATT + (i + 1);
             fedoraRepository.createExternalReferenceDatastream(
                     pid,
                     dsid,
                     label,
                     fileUri);
-            fileElement.setAttribute("id", String.valueOf(i));
+            fileElement.setAttribute("id", String.valueOf(i + 1));
             fileElement.removeChild(tempFile);
             modified = true;
 
@@ -412,7 +417,9 @@ class DocumentResource {
         for (int i = 0; i < fileNodes.getLength(); i++) {
             Node fileNode = fileNodes.item(i);
             Node idAttr = fileNode.getAttributes().getNamedItem("id");
-            if (idAttr != null) {
+            if (idAttr == null) {
+                removees.add(fileNode);
+            } else {
                 String fid = idAttr.getTextContent();
                 String dsid = "QUCOSA-ATT-".concat(fid);
                 if (!fedoraRepository.hasDatastream(pid, dsid)) {

@@ -20,6 +20,7 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.fedora.FedoraRepository;
+import de.qucosa.util.DOMSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
@@ -107,7 +108,7 @@ public class DocumentResourceFileTest {
                         "</PersonAuthor>" +
                         "<TitleMain><Value>Macbeth</Value></TitleMain>" +
                         "<IdentifierUrn><Value>urn:nbn:foo-4711</Value></IdentifierUrn>" +
-                        "<File id=\"0\">" +
+                        "<File id=\"1\">" +
                         "   <PathName>1057131155078-6506.pdf</PathName>" +
                         "   <SortOrder>0</SortOrder>" +
                         "   <Label>Volltextdokument (PDF)</Label>" +
@@ -124,7 +125,7 @@ public class DocumentResourceFileTest {
                         "   <OaiExport>1</OaiExport>" +
                         "   <FrontdoorVisible>1</FrontdoorVisible>" +
                         "</File>" +
-                        "<File id=\"1\">" +
+                        "<File id=\"2\">" +
                         "   <PathName>another.pdf</PathName>" +
                         "   <MimeType>application/pdf</MimeType><Language/>" +
                         "   <FileSize>1401415</FileSize>" +
@@ -140,11 +141,11 @@ public class DocumentResourceFileTest {
 
         DatastreamProfile dsp0 = mock(DatastreamProfile.class);
         when(dsp0.getDsLocation()).thenReturn(f0.toURI().toASCIIString());
-        when(fedoraRepository.getDatastreamProfile(eq("qucosa:4711"), eq("QUCOSA-ATT-0"))).thenReturn(dsp0);
+        when(fedoraRepository.getDatastreamProfile(eq("qucosa:4711"), eq("QUCOSA-ATT-1"))).thenReturn(dsp0);
 
         DatastreamProfile dsp1 = mock(DatastreamProfile.class);
         when(dsp1.getDsLocation()).thenReturn(f1.toURI().toASCIIString());
-        when(fedoraRepository.getDatastreamProfile(eq("qucosa:4711"), eq("QUCOSA-ATT-1"))).thenReturn(dsp1);
+        when(fedoraRepository.getDatastreamProfile(eq("qucosa:4711"), eq("QUCOSA-ATT-2"))).thenReturn(dsp1);
     }
 
     @After
@@ -203,7 +204,7 @@ public class DocumentResourceFileTest {
 
         verify(fedoraRepository).createExternalReferenceDatastream(
                 eq("qucosa:815"),
-                eq("QUCOSA-ATT-0"),
+                eq("QUCOSA-ATT-1"),
                 eq("Volltextdokument (PDF)"),
                 any(URI.class));
     }
@@ -267,7 +268,7 @@ public class DocumentResourceFileTest {
                 anyString(), argCapt.capture());
 
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
-        assertXpathExists("/Opus/Opus_Document/File[@id='0']", control);
+        assertXpathExists("/Opus/Opus_Document/File[@id='1']", control);
         assertXpathExists("/Opus/Opus_Document/File[PathName='1057131155078-6506.pdf']", control);
         assertXpathNotExists("/Opus/Opus_Document/File/TempFile", control);
     }
@@ -304,7 +305,7 @@ public class DocumentResourceFileTest {
                 .content(
                         "<Opus version=\"2.0\">" +
                                 "<Opus_Document>" +
-                                "<File id=\"0\">" +
+                                "<File id=\"1\">" +
                                 "   <PathName>1057131155078-6506.pdf</PathName>" +
                                 "   <SortOrder>0</SortOrder>" +
                                 "   <Label>Volltextdokument (PDF)</Label>" +
@@ -326,9 +327,9 @@ public class DocumentResourceFileTest {
                 )).andExpect(status().isOk());
 
         verify(fedoraRepository, never()).purgeDatastream(
-                eq("qucosa:4711"), eq("QUCOSA-ATT-0"));
-        verify(fedoraRepository).purgeDatastream(
                 eq("qucosa:4711"), eq("QUCOSA-ATT-1"));
+        verify(fedoraRepository).purgeDatastream(
+                eq("qucosa:4711"), eq("QUCOSA-ATT-2"));
         assertFileExists("4711/1057131155078-6506.pdf", dataFolder.getRoot());
         assertFileNotExists("4711/another.pdf", dataFolder.getRoot());
     }
