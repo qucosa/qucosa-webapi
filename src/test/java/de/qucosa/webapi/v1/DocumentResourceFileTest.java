@@ -49,6 +49,7 @@ import java.util.Map;
 
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -296,7 +297,7 @@ public class DocumentResourceFileTest {
     }
 
     @Test
-    public void removingFilesIfNotMentionedInUpdateXml() throws Exception {
+    public void onlyRemovingFilesAndDatastreamIfNotMentionedInUpdateXml() throws Exception {
         mockMvc.perform(put("/document/4711")
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
                 .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -324,8 +325,12 @@ public class DocumentResourceFileTest {
                                 "</Opus>"
                 )).andExpect(status().isOk());
 
-        verify(fedoraRepository).purgeDatastream(
+        verify(fedoraRepository, never()).purgeDatastream(
                 eq("qucosa:4711"), eq("QUCOSA-ATT-0"));
+        verify(fedoraRepository).purgeDatastream(
+                eq("qucosa:4711"), eq("QUCOSA-ATT-1"));
+        assertFileExists("4711/1057131155078-6506.pdf", dataFolder.getRoot());
+        assertFileNotExists("4711/another.pdf", dataFolder.getRoot());
     }
 
     private void mockDatastreamContent(String pid, String dsid, String xml) throws FedoraClientException {
@@ -336,6 +341,13 @@ public class DocumentResourceFileTest {
         File f = new File(root.getAbsolutePath(), filename);
         if (!f.exists()) {
             Assert.fail("File " + filename + " does not exist in " + root.getAbsolutePath());
+        }
+    }
+
+    private void assertFileNotExists(String filename, File root) {
+        File f = new File(root.getAbsolutePath(), filename);
+        if (f.exists()) {
+            fail("File " + filename + " should not exist in " + root.getAbsolutePath());
         }
     }
 

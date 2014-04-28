@@ -59,6 +59,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.*;
 
 @RestController
@@ -319,7 +320,14 @@ class DocumentResource {
             DatastreamProfile datastreamProfile =
                     fedoraRepository.getDatastreamProfile(pid, dsid);
             String path = datastreamProfile.getDsLocation();
-            new File(path).delete();
+
+            try {
+                Files.delete(new File(path).toPath());
+            } catch (IOException ex) {
+                log.error("Deleting file {} failed: {}", path, ex.getMessage());
+                log.warn("Datastream {}/{} gets purged without removing the file", pid, dsid);
+            }
+
             fedoraRepository.purgeDatastream(pid, dsid);
         }
 
@@ -497,9 +505,9 @@ class DocumentResource {
         fedoraRepository.modifyDatastreamContent(pid, "DC", "text/xml", modifiedDcStream);
     }
 
-    private Tuple<Collection<String>> updateWith(Document target, final Document update) {
-        Element targetRoot = (Element) target.getElementsByTagName("Opus_Document").item(0);
-        Element updateRoot = (Element) update.getElementsByTagName("Opus_Document").item(0);
+    private Tuple<Collection<String>> updateWith(Document targetDocument, final Document updateDocument) throws XPathExpressionException {
+        Element targetRoot = (Element) targetDocument.getElementsByTagName("Opus_Document").item(0);
+        Element updateRoot = (Element) updateDocument.getElementsByTagName("Opus_Document").item(0);
 
         Set<String> distinctUpdateFieldList = new LinkedHashSet<>();
         NodeList updateFields = updateRoot.getChildNodes();
@@ -510,19 +518,19 @@ class DocumentResource {
         List<String> purgeDatastreamList = new LinkedList<>();
         for (String fn : distinctUpdateFieldList) {
             // cannot use getElementsByTagName() here because it searches recursively
-            for (Node n : getChildNodesByName(targetRoot, fn)) {
-
-                if (n.getLocalName().equals("File")) {
-                    Node idAttr = n.getAttributes().getNamedItem("id");
+            for (Node victim : getChildNodesByName(targetRoot, fn)) {
+                if (victim.getLocalName().equals("File")) {
+                    Node idAttr = victim.getAttributes().getNamedItem("id");
                     if (idAttr != null) {
-                        String ida = idAttr.getTextContent();
-                        if (!ida.isEmpty()) {
-                            purgeDatastreamList.add(DSID_QUCOSA_ATT.concat(ida));
+                        String idAttrValue = idAttr.getTextContent();
+                        if (!idAttrValue.isEmpty() &&
+                                !((Boolean) xPath.evaluate("//File[@id='" + idAttrValue + "']", updateDocument, XPathConstants.BOOLEAN))) {
+                            purgeDatastreamList.add(DSID_QUCOSA_ATT.concat(idAttrValue));
                         }
                     }
-                }
 
-                targetRoot.removeChild(n);
+                }
+                targetRoot.removeChild(victim);
             }
         }
 
@@ -531,12 +539,12 @@ class DocumentResource {
             // be removed from updateFields by adoptNode().
             Node updateNode = updateFields.item(i).cloneNode(true);
             if (updateNode.hasChildNodes()) {
-                target.adoptNode(updateNode);
+                targetDocument.adoptNode(updateNode);
                 targetRoot.appendChild(updateNode);
             }
         }
 
-        target.normalizeDocument();
+        targetDocument.normalizeDocument();
         return new Tuple(distinctUpdateFieldList, purgeDatastreamList);
     }
 
