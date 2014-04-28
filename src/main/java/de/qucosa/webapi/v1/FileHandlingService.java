@@ -60,7 +60,7 @@ public class FileHandlingService {
 
     private void assertIsWriteable(File f) throws Exception {
         if (!f.canWrite()) {
-            throw new Exception("Given path is not writebale: " + documentsPath);
+            throw new Exception("Given path is not writeable: " + documentsPath);
         }
     }
 
