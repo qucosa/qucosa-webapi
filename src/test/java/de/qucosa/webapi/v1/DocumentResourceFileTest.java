@@ -20,7 +20,6 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.fedora.FedoraRepository;
-import de.qucosa.util.DOMSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
@@ -156,11 +155,6 @@ public class DocumentResourceFileTest {
         emptyFolders(tempFolder.getRoot());
     }
 
-    private void emptyFolders(File root) {
-        File[] files = root.listFiles();
-        for (File f : files) FileUtils.deleteQuietly(f);
-    }
-
     @Test
     public void noFileElementsIfQucosaAttachmentDatastreamIsNotPresent() throws Exception {
         mockMvc.perform(get("/document/4711")
@@ -211,7 +205,8 @@ public class DocumentResourceFileTest {
 
     @Test
     public void postingNewDocumentTriggersCopyingOfTempFiles() throws Exception {
-        tempFolder.newFile("tmp-815.pdf");
+        tempFolder.newFile("tmp-815-1.pdf");
+        tempFolder.newFile("tmp-815-2.pdf");
 
         mockMvc.perform(post("/document")
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -224,9 +219,15 @@ public class DocumentResourceFileTest {
                                 "       <Value>Macbeth</Value>" +
                                 "   </TitleMain>" +
                                 "   <File>" +
-                                "       <PathName>trigger-test.pdf</PathName>" +
+                                "       <PathName>trigger-test-1.pdf</PathName>" +
                                 "       <Label>Volltextdokument (PDF)</Label>" +
-                                "       <TempFile>tmp-815.pdf</TempFile>" +
+                                "       <TempFile>tmp-815-1.pdf</TempFile>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "   <File>" +
+                                "       <PathName>trigger-test-2.pdf</PathName>" +
+                                "       <TempFile>tmp-815-2.pdf</TempFile>" +
                                 "       <OaiExport>1</OaiExport>" +
                                 "       <FrontdoorVisible>1</FrontdoorVisible>" +
                                 "   </File>" +
@@ -234,7 +235,8 @@ public class DocumentResourceFileTest {
                                 "</Opus>"
                 ));
 
-        assertFileExists("815/trigger-test.pdf", dataFolder.getRoot());
+        assertFileExists("815/trigger-test-1.pdf", dataFolder.getRoot());
+        assertFileExists("815/trigger-test-2.pdf", dataFolder.getRoot());
     }
 
     @Test
@@ -332,6 +334,73 @@ public class DocumentResourceFileTest {
                 eq("qucosa:4711"), eq("QUCOSA-ATT-2"));
         assertFileExists("4711/1057131155078-6506.pdf", dataFolder.getRoot());
         assertFileNotExists("4711/another.pdf", dataFolder.getRoot());
+    }
+
+    @Test
+    public void addsFileElementAndCorrespondingDatastreamWhenPuttingAdditionalFile() throws Exception {
+        tempFolder.newFile("tmp-yet-another.pdf");
+
+        mockMvc.perform(put("/document/4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<File id=\"1\">" +
+                                "   <PathName>1057131155078-6506.pdf</PathName>" +
+                                "   <SortOrder>0</SortOrder>" +
+                                "   <Label>Volltextdokument (PDF)</Label>" +
+                                "   <FileType/>" +
+                                "   <MimeType>application/pdf</MimeType><Language/>" +
+                                "   <TempFile/>" +
+                                "   <FileSize>1401415</FileSize>" +
+                                "   <HashValue>" +
+                                "       <Type>md5</Type><Value>cb961ca0c79086341cdc454ea627d975</Value>" +
+                                "   </HashValue>" +
+                                "   <HashValue>" +
+                                "       <Type>sha512</Type><Value>de27573ce9f8ca6f9183609f862796a7aea2e1fdb5741898116ca07ea8d4e537525b853dd2941dcb331b8d09c275acaec643ee976c4ce69c91bfff70d5c1898a</Value>\n" +
+                                "   </HashValue>" +
+                                "   <OaiExport>1</OaiExport>" +
+                                "   <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "</File>" +
+                                "<File id=\"2\">" +
+                                "   <PathName>another.pdf</PathName>" +
+                                "   <MimeType>application/pdf</MimeType><Language/>" +
+                                "   <FileSize>1401415</FileSize>" +
+                                "   <OaiExport>1</OaiExport>" +
+                                "   <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "</File>" +
+                                "<File>" +
+                                "   <PathName>yet-another.pdf</PathName>" +
+                                "   <Label>Volltextdokument (PDF)</Label>" +
+                                "   <MimeType>application/pdf</MimeType><Language/>" +
+                                "   <TempFile>tmp-yet-another.pdf</TempFile>" +
+                                "   <OaiExport>1</OaiExport>" +
+                                "   <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "</File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )).andExpect(status().isOk());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository).modifyDatastreamContent(
+                eq("qucosa:4711"), eq("QUCOSA-XML"),
+                anyString(), argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+
+        System.out.println(de.qucosa.util.DOMSerializer.toString(control));
+
+        assertXpathExists("/Opus/Opus_Document/File[@id='3']", control);
+        assertXpathExists("/Opus/Opus_Document/File[PathName='yet-another.pdf']", control);
+
+        verify(fedoraRepository).createExternalReferenceDatastream(
+                eq("qucosa:4711"), eq("QUCOSA-ATT-3"), eq("Volltextdokument (PDF)"), any(URI.class));
+        assertFileExists("4711/yet-another.pdf", dataFolder.getRoot());
+    }
+
+    private void emptyFolders(File root) {
+        File[] files = root.listFiles();
+        for (File f : files) FileUtils.deleteQuietly(f);
     }
 
     private void mockDatastreamContent(String pid, String dsid, String xml) throws FedoraClientException {

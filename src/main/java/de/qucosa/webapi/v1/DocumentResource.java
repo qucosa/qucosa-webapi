@@ -303,6 +303,15 @@ class DocumentResource {
         modifyDcDatastream(pid, newDcUrns, newTitle);
 
 
+        NodeList newFileElements = (NodeList) xPath.evaluate("/Opus/Opus_Document/File", qucosaDocument, XPathConstants.NODESET);
+        for (int i = 0; i < newFileElements.getLength(); i++) {
+            Element fileElement = (Element) newFileElements.item(i);
+            if (!fileElement.hasAttribute("id")) {
+                handleFileElement(pid, i, fileElement);
+            }
+        }
+
+
         InputStream inputStream = IOUtils.toInputStream(
                 DOMSerializer.toString(qucosaDocument));
         fedoraRepository.modifyDatastreamContent(pid, DSID_QUCOSA_XML, MIMETYPE_QUCOSA_V1_XML, inputStream);
@@ -320,22 +329,8 @@ class DocumentResource {
         fedoraRepository.modifyObjectMetadata(pid, state, label, ownerId);
 
         List<String> purgeDatastreamList = (List<String>) updateOps.get(1);
-        for (String dsid : purgeDatastreamList) {
-            DatastreamProfile datastreamProfile =
-                    fedoraRepository.getDatastreamProfile(pid, dsid);
-            String path = datastreamProfile.getDsLocation();
-            try {
-                Files.delete(
-                        new File(
-                                new URI(path)).toPath()
-                );
-            } catch (IOException ex) {
-                log.error("Deleting file {} failed: {}", path, ex.toString());
-                log.warn("Datastream {}/{} gets purged without removing the file", pid, dsid);
-            }
+        purgeFilesAndCorrespondingDatastreams(pid, purgeDatastreamList);
 
-            fedoraRepository.purgeDatastream(pid, dsid);
-        }
 
         String okResponse = getDocumentUpdatedResponse();
         return new ResponseEntity<>(okResponse, HttpStatus.OK);
@@ -352,6 +347,24 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void purgeFilesAndCorrespondingDatastreams(String pid, List<String> purgeDatastreamList) throws FedoraClientException, URISyntaxException {
+        for (String dsid : purgeDatastreamList) {
+            DatastreamProfile datastreamProfile =
+                    fedoraRepository.getDatastreamProfile(pid, dsid);
+            String path = datastreamProfile.getDsLocation();
+            try {
+                Files.delete(
+                        new File(
+                                new URI(path)).toPath()
+                );
+            } catch (IOException ex) {
+                log.error("Deleting file {} failed: {}", path, ex.toString());
+                log.warn("Datastream {}/{} gets purged without removing the file", pid, dsid);
+            }
+            fedoraRepository.purgeDatastream(pid, dsid);
+        }
     }
 
     private void assertFileElementProperties(Document qucosaDocument) throws BadQucosaDocumentException {
@@ -377,34 +390,41 @@ class DocumentResource {
 
     private boolean handleFileElements(String pid, Document qucosaXml)
             throws Exception {
-
         boolean modified = false;
         Element root = (Element) qucosaXml.getElementsByTagName("Opus_Document").item(0);
         NodeList fileNodes = root.getElementsByTagName("File");
-
         for (int i = 0; i < fileNodes.getLength(); i++) {
             Element fileElement = (Element) fileNodes.item(i);
-            Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
-            Node pathName = fileElement.getElementsByTagName("PathName").item(0);
-
-            String id = pid.substring("qucosa:".length());
-            String tmpFileName = tempFile.getTextContent();
-            String targetFilename = pathName.getTextContent();
-            URI fileUri = fileHandlingService.copyTempfileToTargetFileSpace(tmpFileName, targetFilename, id);
-            String label = fileElement.getElementsByTagName("Label").item(0).getTextContent();
-            String dsid = DSID_QUCOSA_ATT + (i + 1);
-            fedoraRepository.createExternalReferenceDatastream(
-                    pid,
-                    dsid,
-                    label,
-                    fileUri);
-            fileElement.setAttribute("id", String.valueOf(i + 1));
-            fileElement.removeChild(tempFile);
+            handleFileElement(pid, i, fileElement);
             modified = true;
+        }
+        return modified;
+    }
 
+    private void handleFileElement(String pid, int itemIndex, Element fileElement)
+            throws URISyntaxException, IOException, FedoraClientException {
+        Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
+        Node pathName = fileElement.getElementsByTagName("PathName").item(0);
+        if (tempFile == null || pathName == null) {
+            return;
         }
 
-        return modified;
+        String id = pid.substring("qucosa:".length());
+        String tmpFileName = tempFile.getTextContent();
+        String targetFilename = pathName.getTextContent();
+        URI fileUri = fileHandlingService.copyTempfileToTargetFileSpace(tmpFileName, targetFilename, id);
+
+        Node labelNode = fileElement.getElementsByTagName("Label").item(0);
+        String label = (labelNode != null) ? labelNode.getTextContent() : "";
+
+        String dsid = DSID_QUCOSA_ATT + (itemIndex + 1);
+        fedoraRepository.createExternalReferenceDatastream(
+                pid,
+                dsid,
+                label,
+                fileUri);
+        fileElement.setAttribute("id", String.valueOf(itemIndex + 1));
+        fileElement.removeChild(tempFile);
     }
 
     private void removeFileElementsWithoutCorrespondingDatastream(String pid, Document doc) throws FedoraClientException {
