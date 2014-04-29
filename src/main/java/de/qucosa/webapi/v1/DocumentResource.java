@@ -236,7 +236,8 @@ class DocumentResource {
 
         DigitalObjectDocument dod = fob.build();
         if (log.isDebugEnabled()) {
-            dumpToStdOut(dod);
+            log.debug("Ingest FOXML:");
+            debugDump(dod);
         }
 
         try {
@@ -274,6 +275,7 @@ class DocumentResource {
         assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", updateDocument);
 
         if (log.isDebugEnabled()) {
+            log.debug("Incoming update XML:");
             log.debug(DOMSerializer.toString(updateDocument));
         }
 
@@ -311,6 +313,11 @@ class DocumentResource {
             }
         }
 
+        NodeList updateFileElements = (NodeList) xPath.evaluate("/Opus/Opus_Document/File[@id]", updateDocument, XPathConstants.NODESET);
+        for (int i = 0; i < updateFileElements.getLength(); i++) {
+            Element fileElement = (Element) newFileElements.item(i);
+            updateFileElement(pid, fileElement);
+        }
 
         InputStream inputStream = IOUtils.toInputStream(
                 DOMSerializer.toString(qucosaDocument));
@@ -347,6 +354,18 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void updateFileElement(String pid, Element fileElement) throws FedoraClientException {
+        String dsid = DSID_QUCOSA_ATT.concat(fileElement.getAttribute("id"));
+
+        Node labelNode = fileElement.getElementsByTagName("Label").item(0);
+        String newLabel = (labelNode != null) ? labelNode.getTextContent() : "";
+
+        // TODO Handle rename and generate new URI
+        URI newUri = null;
+
+        fedoraRepository.updateExternalReferenceDatastream(pid, dsid, newLabel, newUri);
     }
 
     private void purgeFilesAndCorrespondingDatastreams(String pid, List<String> purgeDatastreamList) throws FedoraClientException, URISyntaxException {
@@ -556,8 +575,8 @@ class DocumentResource {
                             purgeDatastreamList.add(DSID_QUCOSA_ATT.concat(idAttrValue));
                         }
                     }
-
                 }
+                // TODO File Elements get partial updates, so don't remove them here
                 targetRoot.removeChild(victim);
             }
         }
@@ -656,11 +675,14 @@ class DocumentResource {
         return (fob.pid() != null) && (!fob.pid().isEmpty());
     }
 
-    private void dumpToStdOut(DigitalObjectDocument dod) {
+    private void debugDump(DigitalObjectDocument dod) {
         try {
-            dod.save(System.out, new XmlOptions().setSavePrettyPrint());
+            StringWriter stringWriter = new StringWriter();
+            dod.save(stringWriter, new XmlOptions().setSavePrettyPrint());
+            stringWriter.flush();
+            log.debug(stringWriter.toString());
         } catch (IOException e) {
-            log.warn(e.getMessage());
+            log.warn("Debug error: {}", e.getMessage());
         }
     }
 

@@ -131,6 +131,23 @@ public class FedoraRepository {
         }
     }
 
+    public void updateExternalReferenceDatastream(String pid, String dsid, String newLabel, URI newUri) throws FedoraClientException {
+        if ((newLabel != null) || (newUri != null)) {
+            DatastreamProfile currentProfile = getDatastreamProfile(pid, dsid);
+            boolean modified = false;
+            ModifyDatastream request = new ModifyDatastream(pid, dsid);
+            if (!currentProfile.getDsLabel().equals(newLabel)) {
+                request.dsLabel(newLabel);
+            }
+            if ((newUri != null) && (!currentProfile.getDsLocation().equals(newUri.toASCIIString()))) {
+                request.dsLocation(newUri.toASCIIString());
+            }
+            if (modified) {
+                fedoraClient.execute(request);
+            }
+        }
+    }
+
     public List<Tuple<String>> getSuccessorPIDs(String pid, String relationPredicate) throws FedoraClientException, IOException {
         ArrayList<Tuple<String>> result = new ArrayList<>();
         String query = "select ?constituent ?constituent_urn ?constituent_title where { " +
