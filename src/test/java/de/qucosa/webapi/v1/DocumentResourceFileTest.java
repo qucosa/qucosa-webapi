@@ -47,6 +47,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import static junit.framework.Assert.assertTrue;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
 import static org.junit.Assert.fail;
@@ -438,6 +439,51 @@ public class DocumentResourceFileTest {
 
         verify(fedoraRepository).updateExternalReferenceDatastream(
                 eq("qucosa:4711"), eq("QUCOSA-ATT-2"), eq("Another file"), any(URI.class));
+    }
+
+    @Test
+    public void changingPathNameRenamesFileOnDiskAndChangesDatastreamUri() throws Exception {
+        mockMvc.perform(put("/document/4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<File id=\"1\">" +
+                                "   <PathName>1057131155078-6506.pdf</PathName>" +
+                                "   <SortOrder>0</SortOrder>" +
+                                "   <Label>Volltextdokument (PDF)</Label>" +
+                                "   <FileType/>" +
+                                "   <MimeType>application/pdf</MimeType><Language/>" +
+                                "   <TempFile/>" +
+                                "   <FileSize>1401415</FileSize>" +
+                                "   <HashValue>" +
+                                "       <Type>md5</Type><Value>cb961ca0c79086341cdc454ea627d975</Value>" +
+                                "   </HashValue>" +
+                                "   <HashValue>" +
+                                "       <Type>sha512</Type><Value>de27573ce9f8ca6f9183609f862796a7aea2e1fdb5741898116ca07ea8d4e537525b853dd2941dcb331b8d09c275acaec643ee976c4ce69c91bfff70d5c1898a</Value>\n" +
+                                "   </HashValue>" +
+                                "   <OaiExport>1</OaiExport>" +
+                                "   <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "</File>" +
+                                "<File id=\"2\">" +
+                                "   <PathName>new-name.pdf</PathName>" +   // former "another.pdf"
+                                "   <MimeType>application/pdf</MimeType><Language/>" +
+                                "   <FileSize>1401415</FileSize>" +
+                                "   <OaiExport>1</OaiExport>" +
+                                "   <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "</File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )).andExpect(status().isOk());
+
+        ArgumentCaptor<URI> argCapt = ArgumentCaptor.forClass(URI.class);
+        verify(fedoraRepository).updateExternalReferenceDatastream(
+                eq("qucosa:4711"), eq("QUCOSA-ATT-2"), anyString(), argCapt.capture());
+        assertTrue(argCapt.getValue().toASCIIString().contains("new-name.pdf"));
+
+        assertFileNotExists("4711/another.pdf", dataFolder.getRoot());
+        assertFileExists("4711/new-name.pdf", dataFolder.getRoot());
     }
 
     private void emptyFolders(File root) {

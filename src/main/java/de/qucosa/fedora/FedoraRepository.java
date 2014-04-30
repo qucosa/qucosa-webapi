@@ -131,16 +131,19 @@ public class FedoraRepository {
         }
     }
 
-    public void updateExternalReferenceDatastream(String pid, String dsid, String newLabel, URI newUri) throws FedoraClientException {
+    public void updateExternalReferenceDatastream(String pid, String dsid, String newLabel, URI newUri)
+            throws FedoraClientException {
         if ((newLabel != null) || (newUri != null)) {
             DatastreamProfile currentProfile = getDatastreamProfile(pid, dsid);
             boolean modified = false;
             ModifyDatastream request = new ModifyDatastream(pid, dsid);
             if (!currentProfile.getDsLabel().equals(newLabel)) {
                 request.dsLabel(newLabel);
+                modified = true;
             }
             if ((newUri != null) && (!currentProfile.getDsLocation().equals(newUri.toASCIIString()))) {
                 request.dsLocation(newUri.toASCIIString());
+                modified = true;
             }
             if (modified) {
                 fedoraClient.execute(request);

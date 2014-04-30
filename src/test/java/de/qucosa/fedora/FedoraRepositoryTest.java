@@ -20,12 +20,11 @@ package de.qucosa.fedora;
 import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.*;
-import com.yourmediashelf.fedora.client.response.FedoraResponse;
-import com.yourmediashelf.fedora.client.response.GetDatastreamResponse;
-import com.yourmediashelf.fedora.client.response.GetNextPIDResponse;
-import com.yourmediashelf.fedora.client.response.ModifyDatastreamResponse;
+import com.yourmediashelf.fedora.client.response.*;
+import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -106,6 +105,36 @@ public class FedoraRepositoryTest {
         when(fedoraClient.execute(any(GetDatastream.class))).thenReturn(dsResponse);
 
         assertTrue(fedoraRepository.hasDatastream("test:1", "TEST-DS"));
+    }
+
+    @Test
+    public void triggersUpdatesDatastreamProfile() throws Exception {
+        DatastreamProfile mockDSProfile = mock(DatastreamProfile.class);
+        when(mockDSProfile.getDsLabel()).thenReturn("old-label");
+
+        DatastreamProfileResponse mockDSProfileResponse = mock(DatastreamProfileResponse.class);
+        when(mockDSProfileResponse.getDatastreamProfile()).thenReturn(mockDSProfile);
+
+        when(fedoraClient.execute(any(GetDatastream.class))).thenReturn(mockDSProfileResponse);
+
+        fedoraRepository.updateExternalReferenceDatastream("qucosa:4711", "TEST-DS", "new-label", null);
+        verify(fedoraClient, atLeastOnce()).execute(any(ModifyDatastream.class));
+    }
+
+    @Test
+    @Ignore("Currently not possible to ensure that method is not invoked with particular object argument.")
+    public void doesNotTriggerUpdatesDatastreamProfileWhenNothingChanges() throws Exception {
+        DatastreamProfile mockDSProfile = mock(DatastreamProfile.class);
+        when(mockDSProfile.getDsLabel()).thenReturn("same-old-label");
+
+        DatastreamProfileResponse mockDSProfileResponse = mock(DatastreamProfileResponse.class);
+        when(mockDSProfileResponse.getDatastreamProfile()).thenReturn(mockDSProfile);
+
+        when(fedoraClient.execute(any(GetDatastream.class))).thenReturn(mockDSProfileResponse);
+
+        fedoraRepository.updateExternalReferenceDatastream("qucosa:4711", "TEST-DS", "same-old-label", null);
+        // Express intend, but not supported by Mockito this way
+        verify(fedoraClient, never()).execute(any(ModifyDatastream.class));
     }
 
 }

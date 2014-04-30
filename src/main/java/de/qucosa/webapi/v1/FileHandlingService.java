@@ -43,18 +43,20 @@ public class FileHandlingService {
         assertIsWriteable(tempfilesPath);
     }
 
-    public URI copyTempfileToTargetFileSpace(String tempFilename, String targetName, String pid)
+    public URI copyTempfileToTargetFileSpace(String tempFilename, String targetName, String qid)
             throws URISyntaxException, IOException {
         File sourceFile = new File(tempfilesPath, tempFilename);
-        File targetFile = new File(new File(documentsPath, pid), targetName);
+        File targetFile = new File(new File(documentsPath, qid), targetName);
         FileUtils.copyFile(sourceFile, targetFile);
         return targetFile.toURI().normalize();
     }
 
-    public URI renameFileInTargetFileSpace(String filename, String newname, String pid) throws IOException {
-        File sourceFile = new File(new File(documentsPath, pid), filename);
-        File targetFile = new File(new File(documentsPath, pid), newname);
-        FileUtils.moveFile(sourceFile, targetFile);
+    public URI renameFileInTargetFileSpace(String filename, String newname, String qid) throws IOException {
+        File sourceFile = new File(new File(documentsPath, qid), filename);
+        File targetFile = new File(new File(documentsPath, qid), newname);
+        if (!sourceFile.equals(targetFile)) {
+            FileUtils.moveFile(sourceFile, targetFile);
+        }
         return targetFile.toURI().normalize();
     }
 

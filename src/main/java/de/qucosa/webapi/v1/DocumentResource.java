@@ -242,7 +242,7 @@ class DocumentResource {
 
         try {
             fedoraRepository.ingest(dod);
-            handleFilesAndUpdateQucosaXMLDatastream(qucosaDocument, pid);
+            handleFilesAndUpdateDatastreams(qucosaDocument, pid);
         } catch (Exception ex) {
             log.error("Error ingesting object '{}' with PID '{}'. Rolling back ingest.", ex.getMessage(), pid);
             try {
@@ -283,7 +283,8 @@ class DocumentResource {
                 documentBuilder.parse(fedoraRepository.getDatastreamContent(
                         pid, DSID_QUCOSA_XML));
 
-        Tuple<Collection<String>> updateOps = updateWith(qucosaDocument, updateDocument);
+        List<FileUpdateOperation> fileUpdateOperations = new LinkedList<>();
+        Tuple<Collection<String>> updateOps = updateWith(qucosaDocument, updateDocument, fileUpdateOperations);
 
         Set<String> updateFields = (Set<String>) updateOps.get(0);
         assertBasicDocumentProperties(qucosaDocument);
@@ -313,12 +314,6 @@ class DocumentResource {
             }
         }
 
-        NodeList updateFileElements = (NodeList) xPath.evaluate("/Opus/Opus_Document/File[@id]", updateDocument, XPathConstants.NODESET);
-        for (int i = 0; i < updateFileElements.getLength(); i++) {
-            Element fileElement = (Element) newFileElements.item(i);
-            updateFileElement(pid, fileElement);
-        }
-
         InputStream inputStream = IOUtils.toInputStream(
                 DOMSerializer.toString(qucosaDocument));
         fedoraRepository.modifyDatastreamContent(pid, DSID_QUCOSA_XML, MIMETYPE_QUCOSA_V1_XML, inputStream);
@@ -337,7 +332,7 @@ class DocumentResource {
 
         List<String> purgeDatastreamList = (List<String>) updateOps.get(1);
         purgeFilesAndCorrespondingDatastreams(pid, purgeDatastreamList);
-
+        executeFileUpdateOperations(pid, fileUpdateOperations);
 
         String okResponse = getDocumentUpdatedResponse();
         return new ResponseEntity<>(okResponse, HttpStatus.OK);
@@ -356,16 +351,49 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    private void updateFileElement(String pid, Element fileElement) throws FedoraClientException {
-        String dsid = DSID_QUCOSA_ATT.concat(fileElement.getAttribute("id"));
+    private void executeFileUpdateOperations(String pid, List<FileUpdateOperation> fileUpdateOperations)
+            throws IOException, FedoraClientException {
+        for (FileUpdateOperation fupo : fileUpdateOperations) {
+            fupo.setPid(pid)
+                    .setRepository(fedoraRepository)
+                    .setFileservice(fileHandlingService)
+                    .execute();
+        }
+    }
 
-        Node labelNode = fileElement.getElementsByTagName("Label").item(0);
-        String newLabel = (labelNode != null) ? labelNode.getTextContent() : "";
+    private FileUpdateOperation updateFileNodeWith(Element target, Element update)
+            throws FedoraClientException, IOException {
+        FileUpdateOperation fupo = new FileUpdateOperation();
+        NodeList updateNodes = update.getChildNodes();
+        for (int i = 0; i < updateNodes.getLength(); i++) {
+            if (updateNodes.item(i).getNodeType() == Node.ELEMENT_NODE) {
+                Element updateField = (Element) updateNodes.item(i);
+                String updateFieldLocalName = updateField.getLocalName();
+                Element targetElement = (Element) target.getElementsByTagName(updateFieldLocalName).item(0);
 
-        // TODO Handle rename and generate new URI
-        URI newUri = null;
+                if (targetElement == null) {
+                    targetElement = target.getOwnerDocument().createElement(updateFieldLocalName);
+                    target.appendChild(targetElement);
+                    targetElement.appendChild(target.getOwnerDocument().createTextNode(""));
+                }
 
-        fedoraRepository.updateExternalReferenceDatastream(pid, dsid, newLabel, newUri);
+                String oldVal = targetElement.getTextContent();
+                String newVal = updateField.getTextContent();
+
+                if (!oldVal.equals(newVal)) {
+                    switch (updateFieldLocalName) {
+                        case "PathName":
+                            if (!newVal.isEmpty()) fupo.rename(oldVal, newVal);
+                            break;
+                        case "Label":
+                            fupo.newLabel(updateField.getTextContent());
+                            break;
+                    }
+                    targetElement.setTextContent(updateField.getTextContent());
+                }
+            }
+        }
+        return fupo;
     }
 
     private void purgeFilesAndCorrespondingDatastreams(String pid, List<String> purgeDatastreamList) throws FedoraClientException, URISyntaxException {
@@ -397,7 +425,7 @@ class DocumentResource {
         }
     }
 
-    private void handleFilesAndUpdateQucosaXMLDatastream(Document qucosaXml, String pid)
+    private void handleFilesAndUpdateDatastreams(Document qucosaXml, String pid)
             throws Exception {
         boolean isDocumentModified = handleFileElements(pid, qucosaXml);
         if (isDocumentModified) {
@@ -552,7 +580,9 @@ class DocumentResource {
         fedoraRepository.modifyDatastreamContent(pid, "DC", "text/xml", modifiedDcStream);
     }
 
-    private Tuple<Collection<String>> updateWith(Document targetDocument, final Document updateDocument) throws XPathExpressionException {
+    private Tuple<Collection<String>> updateWith(Document targetDocument, final Document updateDocument,
+                                                 List<FileUpdateOperation> fileUpdateOperations)
+            throws XPathExpressionException, IOException, FedoraClientException {
         Element targetRoot = (Element) targetDocument.getElementsByTagName("Opus_Document").item(0);
         Element updateRoot = (Element) updateDocument.getElementsByTagName("Opus_Document").item(0);
 
@@ -562,22 +592,12 @@ class DocumentResource {
             distinctUpdateFieldList.add(updateFields.item(i).getNodeName());
         }
 
-        List<String> purgeDatastreamList = new LinkedList<>();
         for (String fn : distinctUpdateFieldList) {
             // cannot use getElementsByTagName() here because it searches recursively
             for (Node victim : getChildNodesByName(targetRoot, fn)) {
-                if (victim.getLocalName().equals("File")) {
-                    Node idAttr = victim.getAttributes().getNamedItem("id");
-                    if (idAttr != null) {
-                        String idAttrValue = idAttr.getTextContent();
-                        if (!idAttrValue.isEmpty() &&
-                                !((Boolean) xPath.evaluate("//File[@id='" + idAttrValue + "']", updateDocument, XPathConstants.BOOLEAN))) {
-                            purgeDatastreamList.add(DSID_QUCOSA_ATT.concat(idAttrValue));
-                        }
-                    }
+                if (!victim.getLocalName().equals("File")) {
+                    targetRoot.removeChild(victim);
                 }
-                // TODO File Elements get partial updates, so don't remove them here
-                targetRoot.removeChild(victim);
             }
         }
 
@@ -585,14 +605,43 @@ class DocumentResource {
             // Update node needs to be cloned, otherwise it will
             // be removed from updateFields by adoptNode().
             Node updateNode = updateFields.item(i).cloneNode(true);
-            if (updateNode.hasChildNodes()) {
+            if (updateNode.hasChildNodes() && !updateNode.getLocalName().equals("File")) {
                 targetDocument.adoptNode(updateNode);
                 targetRoot.appendChild(updateNode);
             }
         }
 
+        // update File elements in-place
+        List<String> purgeDatastreamList = new LinkedList<>();
+
+        List<Node> targetFileNodes = getChildNodesByName(targetRoot, "File");
+        List<Node> updateFileNodes = getChildNodesByName(updateRoot, "File");
+        for (Node targetNode : targetFileNodes) {
+            Node idAttr = targetNode.getAttributes().getNamedItem("id");
+            if (idAttr != null) {
+                String idAttrValue = idAttr.getTextContent();
+                if (!idAttrValue.isEmpty() &&
+                        !((Boolean) xPath.evaluate("//File[@id='" + idAttrValue + "']", updateDocument, XPathConstants.BOOLEAN))) {
+                    purgeDatastreamList.add(DSID_QUCOSA_ATT.concat(idAttrValue));
+                }
+            }
+        }
+        for (Node updateNode : updateFileNodes) {
+            Node idAttr = updateNode.getAttributes().getNamedItem("id");
+            if (idAttr == null) {
+                targetDocument.adoptNode(updateNode);
+                targetRoot.appendChild(updateNode);
+            } else {
+                String idAttrValue = idAttr.getTextContent();
+                Node targetNode = (Node) xPath.evaluate("//File[@id='" + idAttrValue + "']", targetDocument, XPathConstants.NODE);
+                FileUpdateOperation fupo = updateFileNodeWith((Element) targetNode, (Element) updateNode);
+                fupo.setDsid(DSID_QUCOSA_ATT.concat(idAttrValue));
+                fileUpdateOperations.add(fupo);
+            }
+        }
+
         targetDocument.normalizeDocument();
-        return new Tuple(distinctUpdateFieldList, purgeDatastreamList);
+        return new Tuple<>(distinctUpdateFieldList, purgeDatastreamList);
     }
 
     private List<Node> getChildNodesByName(final Element targetRoot, String nodeName) {
