@@ -611,9 +611,31 @@ class DocumentResource {
             }
         }
 
-        // update File elements in-place
         List<String> purgeDatastreamList = new LinkedList<>();
+        if ((Boolean) xPath.evaluate("//File", updateDocument, XPathConstants.BOOLEAN)) {
+            updateFileElementsInPlace(
+                    targetDocument,
+                    updateDocument,
+                    fileUpdateOperations,
+                    targetRoot,
+                    updateRoot, purgeDatastreamList);
+        }
 
+        targetDocument.normalizeDocument();
+        return new Tuple<>(distinctUpdateFieldList, purgeDatastreamList);
+    }
+
+    private void updateFileElementsInPlace(
+            Document targetDocument,
+            Document updateDocument,
+            List<FileUpdateOperation> fileUpdateOperations,
+            Element targetRoot,
+            Element updateRoot,
+            List<String> purgeDatastreamList)
+            throws
+            XPathExpressionException,
+            FedoraClientException,
+            IOException {
         List<Node> targetFileNodes = getChildNodesByName(targetRoot, "File");
         List<Node> updateFileNodes = getChildNodesByName(updateRoot, "File");
         for (Node targetNode : targetFileNodes) {
@@ -639,9 +661,6 @@ class DocumentResource {
                 fileUpdateOperations.add(fupo);
             }
         }
-
-        targetDocument.normalizeDocument();
-        return new Tuple<>(distinctUpdateFieldList, purgeDatastreamList);
     }
 
     private List<Node> getChildNodesByName(final Element targetRoot, String nodeName) {

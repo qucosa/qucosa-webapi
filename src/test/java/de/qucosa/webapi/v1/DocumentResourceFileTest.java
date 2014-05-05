@@ -486,6 +486,22 @@ public class DocumentResourceFileTest {
         assertFileExists("4711/new-name.pdf", dataFolder.getRoot());
     }
 
+    @Test
+    public void dontTouchDatastreamsIfNoFileElementInUpdateXML() throws Exception {
+        mockMvc.perform(put("/document/4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )).andExpect(status().isOk());
+
+        verify(fedoraRepository, never()).updateExternalReferenceDatastream(
+                anyString(), anyString(), anyString(), any(URI.class));
+    }
+
     private void emptyFolders(File root) {
         File[] files = root.listFiles();
         for (File f : files) FileUtils.deleteQuietly(f);
