@@ -74,10 +74,29 @@ public class DnbUrnURIBuilderTest {
                     .build();
             String asciiUrn = urn.toASCIIString();
 
-            System.out.println(asciiUrn + " " + el[0] + " " + el[1]);
-
             char checkDigit = asciiUrn.charAt(asciiUrn.length() - 1);
             assertEquals("Incorrect check digit in URN " + asciiUrn, el[1], String.valueOf(checkDigit));
+        }
+    }
+
+    @Test
+    public void checkActualUrns() throws URISyntaxException {
+        for (String[] el : new String[][]{
+                {"bsz", "15", "qucosa", "1059", "1"},
+                {"bsz", "15", "qucosa", "1060", "3"},
+                {"bsz", "14", "qucosa", "14106", "1"},
+                {"bsz", "14", "qucosa", "14191", "6"}
+        }) {
+            URI urn = new DnbUrnURIBuilder()
+                    .libraryNetworkAbbreviation(el[0])
+                    .libraryIdentifier(el[1])
+                    .subNamespacePrefix(el[2])
+                    .uniqueNumber(el[3])
+                    .build();
+            String asciiUrn = urn.toASCIIString();
+
+            char checkDigit = asciiUrn.charAt(asciiUrn.length() - 1);
+            assertEquals("Incorrect check digit in URN " + asciiUrn, el[4], String.valueOf(checkDigit));
         }
     }
 

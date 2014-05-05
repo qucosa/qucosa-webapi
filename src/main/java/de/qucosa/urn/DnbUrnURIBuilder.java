@@ -139,7 +139,7 @@ public class DnbUrnURIBuilder {
                 sum += (charcode / 10 * ++index) + (charcode % 10 * ++index);
             }
         }
-        int lastDigit = ((charcode < 10) ? (charcode) : (charcode / 10));
+        int lastDigit = ((charcode < 10) ? (charcode) : (charcode % 10));
         int checkDigit = (sum / lastDigit) % 10;
         return String.valueOf(checkDigit);
     }
