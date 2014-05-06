@@ -465,13 +465,35 @@ class DocumentResource {
         String label = (labelNode != null) ? labelNode.getTextContent() : "";
 
         String dsid = DSID_QUCOSA_ATT + (itemIndex + 1);
-        fedoraRepository.createExternalReferenceDatastream(
+        DatastreamProfile dsp = fedoraRepository.createExternalReferenceDatastream(
                 pid,
                 dsid,
                 label,
                 fileUri);
         fileElement.setAttribute("id", String.valueOf(itemIndex + 1));
+        addHashValue(fileElement, dsp);
+
         fileElement.removeChild(tempFile);
+    }
+
+    private void addHashValue(Element fileElement, DatastreamProfile dsp) {
+        if ((fileElement == null) || (dsp == null)) return;
+
+        String hashType = dsp.getDsChecksumType();
+        String hashValue = dsp.getDsChecksum();
+
+        if ((hashType != null) && (hashValue != null) && !hashType.isEmpty() && !hashValue.isEmpty()) {
+            Element hashValueElement = fileElement.getOwnerDocument().createElement("HashValue");
+            Element typeElement = fileElement.getOwnerDocument().createElement("Type");
+            Element valueElement = fileElement.getOwnerDocument().createElement("Value");
+
+            fileElement.appendChild(hashValueElement);
+            hashValueElement.appendChild(typeElement);
+            hashValueElement.appendChild(valueElement);
+
+            typeElement.setTextContent(hashType);
+            valueElement.setTextContent(hashValue);
+        }
     }
 
     private void removeFileElementsWithoutCorrespondingDatastream(String pid, Document doc) throws FedoraClientException {

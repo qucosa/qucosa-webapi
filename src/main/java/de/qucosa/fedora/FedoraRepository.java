@@ -106,17 +106,19 @@ public class FedoraRepository {
         return datastreamProfileResponse.getDatastreamProfile();
     }
 
-    public void createExternalReferenceDatastream(String pid, String dsid, String label, URI target)
+    public DatastreamProfile createExternalReferenceDatastream(String pid, String dsid, String label, URI target)
             throws FedoraClientException, IOException {
-        fedoraClient.execute(
-                new AddDatastream(pid, dsid)
-                        .controlGroup("E")
-                        .checksumType("SHA-512")
-                        .dsState("A")
-                        .versionable(false)
-                        .dsLabel(label)
-                        .dsLocation(target.toASCIIString())
-        );
+        DatastreamProfileResponse response =
+                (DatastreamProfileResponse) fedoraClient.execute(
+                        new AddDatastream(pid, dsid)
+                                .controlGroup("E")
+                                .checksumType("SHA-512")
+                                .dsState("A")
+                                .versionable(false)
+                                .dsLabel(label)
+                                .dsLocation(target.toASCIIString())
+                );
+        return response.getDatastreamProfile();
     }
 
     public void modifyDatastreamContent(String pid, String dsid, String mimeType, InputStream input) throws FedoraClientException {

@@ -20,6 +20,7 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.fedora.FedoraRepository;
+import de.qucosa.util.DOMSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
@@ -390,8 +391,6 @@ public class DocumentResourceFileTest {
                 anyString(), argCapt.capture());
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
 
-        System.out.println(de.qucosa.util.DOMSerializer.toString(control));
-
         assertXpathExists("/Opus/Opus_Document/File[@id='3']", control);
         assertXpathExists("/Opus/Opus_Document/File[PathName='yet-another.pdf']", control);
 
@@ -500,6 +499,60 @@ public class DocumentResourceFileTest {
 
         verify(fedoraRepository, never()).updateExternalReferenceDatastream(
                 anyString(), anyString(), anyString(), any(URI.class));
+    }
+
+    @Test
+    public void addsHashValueElement() throws Exception {
+        tempFolder.newFile("tmp-4711.pdf");
+        final String SHA512 = "e3aeef00891378c0750606f0328f9fb385e900a2bc8faf015fdf87c1f37acfab3a3768bab20c0eaeb5e25ae985683e0d4a5da480bfc4f83ee02f4a073b3b84c6";
+
+        DatastreamProfile dsp = mock(DatastreamProfile.class);
+        when(dsp.getDsChecksumType()).thenReturn("SHA-512");
+        when(dsp.getDsChecksum()).thenReturn(SHA512);
+        when(fedoraRepository.createExternalReferenceDatastream(
+                eq("qucosa:815"),
+                eq("QUCOSA-ATT-1"),
+                eq("Volltextdokument (PDF)"),
+                any(URI.class))).thenReturn(dsp);
+
+
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "   <DocumentId>815</DocumentId>" +
+                                "       <PersonAuthor>" +
+                                "           <LastName>Shakespear</LastName>" +
+                                "           <FirstName>William</FirstName>" +
+                                "       </PersonAuthor>" +
+                                "   <TitleMain>" +
+                                "       <Value>Macbeth</Value>" +
+                                "   </TitleMain>" +
+                                "   <IdentifierUrn>" +
+                                "       <Value>urn:nbn:foo-4711</Value>" +
+                                "   </IdentifierUrn>" +
+                                "   <File>" +
+                                "       <PathName>1057131155078-6506.pdf</PathName>" +
+                                "       <Label>Volltextdokument (PDF)</Label>" +
+                                "       <TempFile>tmp-4711.pdf</TempFile>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository).modifyDatastreamContent(
+                eq("qucosa:815"), eq("QUCOSA-XML"),
+                anyString(), argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+
+        assertXpathExists("/Opus/Opus_Document/File/HashValue[Type='SHA-512']", control);
+        assertXpathExists("/Opus/Opus_Document/File/HashValue[Value='" + SHA512 + "']", control);
     }
 
     private void emptyFolders(File root) {
