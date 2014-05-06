@@ -236,7 +236,7 @@ class DocumentResource {
 
         DigitalObjectDocument dod = fob.build();
         if (log.isDebugEnabled()) {
-            log.debug("Ingest FOXML:");
+            log.debug("Ingest FOXML (there might be subsequent changes to datastreams):");
             debugDump(dod);
         }
 
@@ -310,7 +310,7 @@ class DocumentResource {
         for (int i = 0; i < newFileElements.getLength(); i++) {
             Element fileElement = (Element) newFileElements.item(i);
             if (!fileElement.hasAttribute("id")) {
-                handleFileElement(pid, i, fileElement);
+                handleFileElement(pid, i + 1, fileElement);
             }
         }
 
@@ -442,14 +442,14 @@ class DocumentResource {
         NodeList fileNodes = root.getElementsByTagName("File");
         for (int i = 0; i < fileNodes.getLength(); i++) {
             Element fileElement = (Element) fileNodes.item(i);
-            handleFileElement(pid, i, fileElement);
+            handleFileElement(pid, i + 1, fileElement);
             modified = true;
         }
         return modified;
     }
 
     private void handleFileElement(String pid, int itemIndex, Element fileElement)
-            throws URISyntaxException, IOException, FedoraClientException {
+            throws URISyntaxException, IOException, FedoraClientException, XPathExpressionException {
         Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
         Node pathName = fileElement.getElementsByTagName("PathName").item(0);
         if (tempFile == null || pathName == null) {
@@ -464,13 +464,23 @@ class DocumentResource {
         Node labelNode = fileElement.getElementsByTagName("Label").item(0);
         String label = (labelNode != null) ? labelNode.getTextContent() : "";
 
-        String dsid = DSID_QUCOSA_ATT + (itemIndex + 1);
+        String detectedContentType = Files.probeContentType(new File(fileUri).toPath());
+        if (!(Boolean) xPath.evaluate("MimeType[text()!='']", fileElement, XPathConstants.BOOLEAN)) {
+            if (detectedContentType != null) {
+                Element mimeTypeElement = fileElement.getOwnerDocument().createElement("MimeType");
+                mimeTypeElement.setTextContent(detectedContentType);
+                fileElement.appendChild(mimeTypeElement);
+            }
+        }
+
+        String dsid = DSID_QUCOSA_ATT + (itemIndex);
         DatastreamProfile dsp = fedoraRepository.createExternalReferenceDatastream(
                 pid,
                 dsid,
                 label,
-                fileUri);
-        fileElement.setAttribute("id", String.valueOf(itemIndex + 1));
+                fileUri,
+                detectedContentType);
+        fileElement.setAttribute("id", String.valueOf(itemIndex));
         addHashValue(fileElement, dsp);
 
         fileElement.removeChild(tempFile);

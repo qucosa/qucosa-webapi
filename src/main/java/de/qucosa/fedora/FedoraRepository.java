@@ -106,7 +106,7 @@ public class FedoraRepository {
         return datastreamProfileResponse.getDatastreamProfile();
     }
 
-    public DatastreamProfile createExternalReferenceDatastream(String pid, String dsid, String label, URI target)
+    public DatastreamProfile createExternalReferenceDatastream(String pid, String dsid, String label, URI target, String contentType)
             throws FedoraClientException, IOException {
         DatastreamProfileResponse response =
                 (DatastreamProfileResponse) fedoraClient.execute(
@@ -117,6 +117,7 @@ public class FedoraRepository {
                                 .versionable(false)
                                 .dsLabel(label)
                                 .dsLocation(target.toASCIIString())
+                                .mimeType(contentType)
                 );
         return response.getDatastreamProfile();
     }

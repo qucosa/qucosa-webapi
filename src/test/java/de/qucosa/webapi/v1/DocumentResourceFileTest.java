@@ -20,7 +20,6 @@ package de.qucosa.webapi.v1;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.fedora.FedoraRepository;
-import de.qucosa.util.DOMSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
@@ -45,6 +44,9 @@ import org.xml.sax.InputSource;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -203,7 +205,8 @@ public class DocumentResourceFileTest {
                 eq("qucosa:815"),
                 eq("QUCOSA-ATT-1"),
                 eq("Volltextdokument (PDF)"),
-                any(URI.class));
+                any(URI.class),
+                anyString());
     }
 
     @Test
@@ -395,7 +398,7 @@ public class DocumentResourceFileTest {
         assertXpathExists("/Opus/Opus_Document/File[PathName='yet-another.pdf']", control);
 
         verify(fedoraRepository).createExternalReferenceDatastream(
-                eq("qucosa:4711"), eq("QUCOSA-ATT-3"), eq("Volltextdokument (PDF)"), any(URI.class));
+                eq("qucosa:4711"), eq("QUCOSA-ATT-3"), eq("Volltextdokument (PDF)"), any(URI.class), anyString());
         assertFileExists("4711/yet-another.pdf", dataFolder.getRoot());
     }
 
@@ -513,8 +516,8 @@ public class DocumentResourceFileTest {
                 eq("qucosa:815"),
                 eq("QUCOSA-ATT-1"),
                 eq("Volltextdokument (PDF)"),
-                any(URI.class))).thenReturn(dsp);
-
+                any(URI.class),
+                anyString())).thenReturn(dsp);
 
         mockMvc.perform(post("/document")
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -553,6 +556,50 @@ public class DocumentResourceFileTest {
 
         assertXpathExists("/Opus/Opus_Document/File/HashValue[Type='SHA-512']", control);
         assertXpathExists("/Opus/Opus_Document/File/HashValue[Value='" + SHA512 + "']", control);
+    }
+
+    @Test
+    public void addsMimeTypeElement() throws Exception {
+        Path src = new File(this.getClass().getResource("/blank.pdf").toURI()).toPath();
+        Path dest = tempFolder.getRoot().toPath().resolve(src.getFileName());
+        Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "   <DocumentId>815</DocumentId>" +
+                                "       <PersonAuthor>" +
+                                "           <LastName>Shakespear</LastName>" +
+                                "           <FirstName>William</FirstName>" +
+                                "       </PersonAuthor>" +
+                                "   <TitleMain>" +
+                                "       <Value>Macbeth</Value>" +
+                                "   </TitleMain>" +
+                                "   <IdentifierUrn>" +
+                                "       <Value>urn:nbn:foo-4711</Value>" +
+                                "   </IdentifierUrn>" +
+                                "   <File>" +
+                                "       <PathName>1057131155078-6506.pdf</PathName>" +
+                                "       <Label>Volltextdokument (PDF)</Label>" +
+                                "       <TempFile>blank.pdf</TempFile>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository).modifyDatastreamContent(
+                eq("qucosa:815"), eq("QUCOSA-XML"),
+                anyString(), argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+
+        assertXpathExists("/Opus/Opus_Document/File[MimeType='application/pdf']", control);
     }
 
     private void emptyFolders(File root) {
