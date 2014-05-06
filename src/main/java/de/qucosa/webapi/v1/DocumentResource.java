@@ -363,7 +363,7 @@ class DocumentResource {
     }
 
     private FileUpdateOperation updateFileNodeWith(Element target, Element update)
-            throws FedoraClientException, IOException {
+            throws FedoraClientException, IOException, XPathExpressionException {
         FileUpdateOperation fupo = new FileUpdateOperation();
         NodeList updateNodes = update.getChildNodes();
         for (int i = 0; i < updateNodes.getLength(); i++) {
@@ -388,6 +388,9 @@ class DocumentResource {
                             break;
                         case "Label":
                             fupo.newLabel(updateField.getTextContent());
+                            break;
+                        case "FrontdoorVisible":
+                            fupo.newState(determineDatastreamState(update));
                             break;
                     }
                     targetElement.setTextContent(updateField.getTextContent());
@@ -483,16 +486,25 @@ class DocumentResource {
         }
 
         String dsid = DSID_QUCOSA_ATT + (itemIndex);
+        String state = determineDatastreamState(fileElement);
         DatastreamProfile dsp = fedoraRepository.createExternalReferenceDatastream(
                 pid,
                 dsid,
                 label,
                 fileUri,
-                detectedContentType);
+                detectedContentType,
+                state);
         fileElement.setAttribute("id", String.valueOf(itemIndex));
         addHashValue(fileElement, dsp);
 
         fileElement.removeChild(tempFile);
+    }
+
+    private String determineDatastreamState(Element fileElement) throws XPathExpressionException {
+        if (!(Boolean) xPath.evaluate("FrontdoorVisible[text()='1']", fileElement, XPathConstants.BOOLEAN)) {
+            return "I";
+        }
+        return "A";
     }
 
     private void addHashValue(Element fileElement, DatastreamProfile dsp) {

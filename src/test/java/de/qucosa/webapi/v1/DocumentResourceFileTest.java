@@ -206,7 +206,8 @@ public class DocumentResourceFileTest {
                 eq("QUCOSA-ATT-1"),
                 eq("Volltextdokument (PDF)"),
                 any(URI.class),
-                anyString());
+                anyString(),
+                eq("A"));
     }
 
     @Test
@@ -398,7 +399,7 @@ public class DocumentResourceFileTest {
         assertXpathExists("/Opus/Opus_Document/File[PathName='yet-another.pdf']", control);
 
         verify(fedoraRepository).createExternalReferenceDatastream(
-                eq("qucosa:4711"), eq("QUCOSA-ATT-3"), eq("Volltextdokument (PDF)"), any(URI.class), anyString());
+                eq("qucosa:4711"), eq("QUCOSA-ATT-3"), eq("Volltextdokument (PDF)"), any(URI.class), anyString(), eq("A"));
         assertFileExists("4711/yet-another.pdf", dataFolder.getRoot());
     }
 
@@ -440,7 +441,7 @@ public class DocumentResourceFileTest {
                 )).andExpect(status().isOk());
 
         verify(fedoraRepository).updateExternalReferenceDatastream(
-                eq("qucosa:4711"), eq("QUCOSA-ATT-2"), eq("Another file"), any(URI.class));
+                eq("qucosa:4711"), eq("QUCOSA-ATT-2"), eq("Another file"), any(URI.class), anyString());
     }
 
     @Test
@@ -481,7 +482,7 @@ public class DocumentResourceFileTest {
 
         ArgumentCaptor<URI> argCapt = ArgumentCaptor.forClass(URI.class);
         verify(fedoraRepository).updateExternalReferenceDatastream(
-                eq("qucosa:4711"), eq("QUCOSA-ATT-2"), anyString(), argCapt.capture());
+                eq("qucosa:4711"), eq("QUCOSA-ATT-2"), anyString(), argCapt.capture(), anyString());
         assertTrue(argCapt.getValue().toASCIIString().contains("new-name.pdf"));
 
         assertFileNotExists("4711/another.pdf", dataFolder.getRoot());
@@ -501,7 +502,7 @@ public class DocumentResourceFileTest {
                 )).andExpect(status().isOk());
 
         verify(fedoraRepository, never()).updateExternalReferenceDatastream(
-                anyString(), anyString(), anyString(), any(URI.class));
+                anyString(), anyString(), anyString(), any(URI.class), anyString());
     }
 
     @Test
@@ -517,7 +518,8 @@ public class DocumentResourceFileTest {
                 eq("QUCOSA-ATT-1"),
                 eq("Volltextdokument (PDF)"),
                 any(URI.class),
-                anyString())).thenReturn(dsp);
+                anyString(),
+                eq("A"))).thenReturn(dsp);
 
         mockMvc.perform(post("/document")
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
@@ -644,6 +646,25 @@ public class DocumentResourceFileTest {
         Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
 
         assertXpathExists("/Opus/Opus_Document/File[FileSize='11112']", control);
+    }
+
+    @Test
+    public void ifNotFrontdoorVisibleDatastreamIsInActive() throws Exception {
+        mockMvc.perform(put("/document/4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<File id=\"1\">" +
+                                "   <FrontdoorVisible>0</FrontdoorVisible>" +
+                                "</File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )).andExpect(status().isOk());
+
+        verify(fedoraRepository).updateExternalReferenceDatastream(
+                eq("qucosa:4711"), eq("QUCOSA-ATT-1"), anyString(), any(URI.class), eq("I"));
     }
 
     private void emptyFolders(File root) {

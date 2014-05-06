@@ -37,6 +37,7 @@ public class FedoraRepository {
 
     public static final String RELATION_DERIVATIVE = "isDerivationOf";
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
+    public static final String DEFAULT_CHECKSUM_TYPE = "SHA-512";
     private final FedoraClient fedoraClient;
 
     public FedoraRepository(FedoraClient fedoraClient) {
@@ -106,14 +107,14 @@ public class FedoraRepository {
         return datastreamProfileResponse.getDatastreamProfile();
     }
 
-    public DatastreamProfile createExternalReferenceDatastream(String pid, String dsid, String label, URI target, String contentType)
+    public DatastreamProfile createExternalReferenceDatastream(String pid, String dsid, String label, URI target, String contentType, String state)
             throws FedoraClientException, IOException {
         DatastreamProfileResponse response =
                 (DatastreamProfileResponse) fedoraClient.execute(
                         new AddDatastream(pid, dsid)
                                 .controlGroup("E")
-                                .checksumType("SHA-512")
-                                .dsState("A")
+                                .checksumType(DEFAULT_CHECKSUM_TYPE)
+                                .dsState(state)
                                 .versionable(false)
                                 .dsLabel(label)
                                 .dsLocation(target.toASCIIString())
@@ -134,18 +135,22 @@ public class FedoraRepository {
         }
     }
 
-    public void updateExternalReferenceDatastream(String pid, String dsid, String newLabel, URI newUri)
+    public void updateExternalReferenceDatastream(String pid, String dsid, String newLabel, URI newUri, String newState)
             throws FedoraClientException {
-        if ((newLabel != null) || (newUri != null)) {
+        if ((newLabel != null) || (newUri != null) || (newState != null)) {
             DatastreamProfile currentProfile = getDatastreamProfile(pid, dsid);
             boolean modified = false;
             ModifyDatastream request = new ModifyDatastream(pid, dsid);
-            if (!currentProfile.getDsLabel().equals(newLabel)) {
+            if ((newLabel != null) && (!currentProfile.getDsLabel().equals(newLabel))) {
                 request.dsLabel(newLabel);
                 modified = true;
             }
             if ((newUri != null) && (!currentProfile.getDsLocation().equals(newUri.toASCIIString()))) {
                 request.dsLocation(newUri.toASCIIString());
+                modified = true;
+            }
+            if ((newState != null) && (!currentProfile.getDsState().equals(newState))) {
+                request.dsState(newState);
                 modified = true;
             }
             if (modified) {

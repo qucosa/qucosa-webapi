@@ -30,6 +30,7 @@ public class FileUpdateOperation {
     private FileHandlingService fileservice;
     private String[] rename;
     private String newLabel;
+    private String newState;
 
     public FileUpdateOperation setDsid(String dsid) {
         this.dsid = dsid;
@@ -60,8 +61,8 @@ public class FileUpdateOperation {
         if (rename != null) {
             newUri = fileservice.renameFileInTargetFileSpace(rename[0], rename[1], pid.substring("qucosa:".length()));
         }
-        if ((newLabel != null) || (newUri != null)) {
-            repository.updateExternalReferenceDatastream(pid, dsid, newLabel, newUri);
+        if ((newLabel != null) || (newUri != null) || (newState != null)) {
+            repository.updateExternalReferenceDatastream(pid, dsid, newLabel, newUri, newState);
         }
     }
 
@@ -73,6 +74,11 @@ public class FileUpdateOperation {
 
     public FileUpdateOperation newLabel(String newLabel) {
         this.newLabel = newLabel;
+        return this;
+    }
+
+    public FileUpdateOperation newState(String newState) {
+        this.newState = newState;
         return this;
     }
 }

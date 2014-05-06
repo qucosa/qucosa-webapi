@@ -117,7 +117,7 @@ public class FedoraRepositoryTest {
 
         when(fedoraClient.execute(any(GetDatastream.class))).thenReturn(mockDSProfileResponse);
 
-        fedoraRepository.updateExternalReferenceDatastream("qucosa:4711", "TEST-DS", "new-label", null);
+        fedoraRepository.updateExternalReferenceDatastream("qucosa:4711", "TEST-DS", "new-label", null, null);
         verify(fedoraClient, atLeastOnce()).execute(any(ModifyDatastream.class));
     }
 
@@ -132,7 +132,7 @@ public class FedoraRepositoryTest {
 
         when(fedoraClient.execute(any(GetDatastream.class))).thenReturn(mockDSProfileResponse);
 
-        fedoraRepository.updateExternalReferenceDatastream("qucosa:4711", "TEST-DS", "same-old-label", null);
+        fedoraRepository.updateExternalReferenceDatastream("qucosa:4711", "TEST-DS", "same-old-label", null, null);
         // Express intend, but not supported by Mockito this way
         verify(fedoraClient, never()).execute(any(ModifyDatastream.class));
     }
