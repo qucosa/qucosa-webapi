@@ -602,6 +602,50 @@ public class DocumentResourceFileTest {
         assertXpathExists("/Opus/Opus_Document/File[MimeType='application/pdf']", control);
     }
 
+    @Test
+    public void addsFileSize() throws Exception {
+        Path src = new File(this.getClass().getResource("/blank.pdf").toURI()).toPath();
+        Path dest = tempFolder.getRoot().toPath().resolve(src.getFileName());
+        Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+
+        mockMvc.perform(post("/document")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "   <DocumentId>815</DocumentId>" +
+                                "       <PersonAuthor>" +
+                                "           <LastName>Shakespear</LastName>" +
+                                "           <FirstName>William</FirstName>" +
+                                "       </PersonAuthor>" +
+                                "   <TitleMain>" +
+                                "       <Value>Macbeth</Value>" +
+                                "   </TitleMain>" +
+                                "   <IdentifierUrn>" +
+                                "       <Value>urn:nbn:foo-4711</Value>" +
+                                "   </IdentifierUrn>" +
+                                "   <File>" +
+                                "       <PathName>1057131155078-6506.pdf</PathName>" +
+                                "       <Label>Volltextdokument (PDF)</Label>" +
+                                "       <TempFile>blank.pdf</TempFile>" +
+                                "       <OaiExport>1</OaiExport>" +
+                                "       <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "   </File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                ))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<InputStream> argCapt = ArgumentCaptor.forClass(InputStream.class);
+        verify(fedoraRepository).modifyDatastreamContent(
+                eq("qucosa:815"), eq("QUCOSA-XML"),
+                anyString(), argCapt.capture());
+        Document control = XMLUnit.buildControlDocument(new InputSource(argCapt.getValue()));
+
+        assertXpathExists("/Opus/Opus_Document/File[FileSize='11112']", control);
+    }
+
     private void emptyFolders(File root) {
         File[] files = root.listFiles();
         for (File f : files) FileUtils.deleteQuietly(f);

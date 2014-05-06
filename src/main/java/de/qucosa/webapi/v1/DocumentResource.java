@@ -60,6 +60,7 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 @RestController
@@ -464,13 +465,21 @@ class DocumentResource {
         Node labelNode = fileElement.getElementsByTagName("Label").item(0);
         String label = (labelNode != null) ? labelNode.getTextContent() : "";
 
-        String detectedContentType = Files.probeContentType(new File(fileUri).toPath());
+        final Path filePath = new File(fileUri).toPath();
+
+        String detectedContentType = Files.probeContentType(filePath);
         if (!(Boolean) xPath.evaluate("MimeType[text()!='']", fileElement, XPathConstants.BOOLEAN)) {
             if (detectedContentType != null) {
                 Element mimeTypeElement = fileElement.getOwnerDocument().createElement("MimeType");
                 mimeTypeElement.setTextContent(detectedContentType);
                 fileElement.appendChild(mimeTypeElement);
             }
+        }
+
+        if (!(Boolean) xPath.evaluate("FileSize[text()!='']", fileElement, XPathConstants.BOOLEAN)) {
+            Element fileSizeElement = fileElement.getOwnerDocument().createElement("FileSize");
+            fileSizeElement.setTextContent(String.valueOf(Files.size(filePath)));
+            fileElement.appendChild(fileSizeElement);
         }
 
         String dsid = DSID_QUCOSA_ATT + (itemIndex);
