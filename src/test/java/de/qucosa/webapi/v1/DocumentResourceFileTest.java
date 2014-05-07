@@ -42,8 +42,10 @@ import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -166,6 +168,11 @@ public class DocumentResourceFileTest {
                 .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml")))
                 .andExpect(status().isOk())
                 .andExpect(xpath("/Opus/Opus_Document/File").doesNotExist());
+    }
+
+    @Test
+    public void noHtAccessFilePresent() throws Exception {
+        assertFileNotExists("4711/.htaccess", dataFolder.getRoot());
     }
 
     @Test
@@ -667,6 +674,53 @@ public class DocumentResourceFileTest {
                 eq("qucosa:4711"), eq("QUCOSA-ATT-1"), anyString(), any(URI.class), eq("I"));
     }
 
+    @Test
+    public void writeAccessRestrictionToHtAccessFile() throws Exception {
+        mockMvc.perform(put("/document/4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<File id=\"1\">" +
+                                "   <FrontdoorVisible>0</FrontdoorVisible>" +
+                                "</File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )).andExpect(status().isOk());
+
+        assertFileExists("4711/.htaccess", dataFolder.getRoot());
+        assertFileEquals(
+                new File(this.getClass().getResource("/test-htaccess").toURI()),
+                dataFolder.getRoot().toPath().resolve("4711/.htaccess").toFile());
+    }
+
+    @Test
+    public void removesHtAccessFileIfRestrictionsDontApplyAnymore() throws Exception {
+        dataFolder.newFile("4711/.htaccess");
+
+        mockMvc.perform(put("/document/4711")
+                .accept(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .contentType(new MediaType("application", "vnd.slub.qucosa-v1+xml"))
+                .content(
+                        "<Opus version=\"2.0\">" +
+                                "<Opus_Document>" +
+                                "<File id=\"1\">" +
+                                "   <FrontdoorVisible>1</FrontdoorVisible>" +
+                                "</File>" +
+                                "</Opus_Document>" +
+                                "</Opus>"
+                )).andExpect(status().isOk());
+
+        assertFileNotExists("4711/.htaccess", dataFolder.getRoot());
+    }
+
+    private void assertFileEquals(File expected, File actual) throws IOException {
+        String s1 = IOUtils.toString(Files.newBufferedReader(expected.toPath(), Charset.defaultCharset())).trim();
+        String s2 = IOUtils.toString(Files.newBufferedReader(actual.toPath(), Charset.defaultCharset())).trim();
+        if (!s1.equals(s2)) fail("File contents are not equal");
+    }
+
     private void emptyFolders(File root) {
         File[] files = root.listFiles();
         for (File f : files) FileUtils.deleteQuietly(f);
@@ -689,5 +743,6 @@ public class DocumentResourceFileTest {
             fail("File " + filename + " should not exist in " + root.getAbsolutePath());
         }
     }
+
 
 }

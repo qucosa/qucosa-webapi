@@ -60,6 +60,12 @@ public class FileHandlingService {
         return targetFile.toURI().normalize();
     }
 
+    public File newFile(String qid, String filename) throws IOException {
+        File nf = new File(new File(documentsPath, qid), filename);
+        nf.createNewFile();
+        return nf;
+    }
+
     private void assertIsWriteable(File f) throws Exception {
         if (!f.canWrite()) {
             throw new Exception("Given path is not writeable: " + documentsPath);

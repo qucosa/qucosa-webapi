@@ -53,10 +53,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -244,6 +241,7 @@ class DocumentResource {
         try {
             fedoraRepository.ingest(dod);
             handleFilesAndUpdateDatastreams(qucosaDocument, pid);
+            writeHtAccessFile(id, qucosaDocument);
         } catch (Exception ex) {
             log.error("Error ingesting object '{}' with PID '{}'. Rolling back ingest.", ex.getMessage(), pid);
             try {
@@ -334,6 +332,7 @@ class DocumentResource {
         List<String> purgeDatastreamList = (List<String>) updateOps.get(1);
         purgeFilesAndCorrespondingDatastreams(pid, purgeDatastreamList);
         executeFileUpdateOperations(pid, fileUpdateOperations);
+        writeHtAccessFile(qucosaID, qucosaDocument);
 
         String okResponse = getDocumentUpdatedResponse();
         return new ResponseEntity<>(okResponse, HttpStatus.OK);
@@ -350,6 +349,37 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void writeHtAccessFile(String qid, Document qucosaDocument) throws XPathExpressionException, IOException {
+        NodeList restrictedFiles = (NodeList) xPath.evaluate(
+                "//File[PathName!='' and FrontdoorVisible!='1']", qucosaDocument, XPathConstants.NODESET);
+
+        File htaccess = fileHandlingService.newFile(qid, ".htaccess");
+
+        if (htaccess == null) {
+            log.warn("Cannot write to .htaccess file.");
+            return;
+        }
+        if (restrictedFiles.getLength() == 0) {
+            if (htaccess.exists()) htaccess.delete();
+            return;
+        }
+
+        List<String> filenames = new LinkedList<>();
+        for (int i = 0; i < restrictedFiles.getLength(); i++) {
+            filenames.add(
+                    ((Element) restrictedFiles.item(i)).getElementsByTagName("PathName").item(0).getTextContent());
+        }
+
+        PrintWriter printWriter = new PrintWriter(htaccess);
+        for (String filename : filenames) {
+            printWriter.printf(
+                    "<Files \"%s\">\n\tOrder Deny,Allow\n\tDeny From All\n</Files>\n",
+                    filename
+            );
+        }
+        printWriter.close();
     }
 
     private void executeFileUpdateOperations(String pid, List<FileUpdateOperation> fileUpdateOperations)
