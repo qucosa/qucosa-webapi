@@ -55,6 +55,7 @@ public class FedoraObjectBuilder {
         if (qucosaXmlDocument != null) {
             addQucosaXMLContentDatastream(dobj);
         }
+        // TODO Add External Reference Datastreams
         return dof;
     }
 

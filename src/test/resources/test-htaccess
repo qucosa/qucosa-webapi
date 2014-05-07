@@ -1,0 +1,4 @@
+<Files "1057131155078-6506.pdf">
+	Order Deny,Allow
+	Deny From All
+</Files>

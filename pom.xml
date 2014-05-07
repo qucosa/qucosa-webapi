@@ -26,6 +26,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring.version>4.0.3.RELEASE</spring.version>
         <spring-security.version>3.2.3.RELEASE</spring-security.version>
+        <elasticsearch.version>1.0.0</elasticsearch.version>
     </properties>
 
     <groupId>de.qucosa</groupId>
@@ -190,7 +191,7 @@
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
-            <version>1.0.0</version>
+            <version>${elasticsearch.version}</version>
         </dependency>
 
         <dependency>

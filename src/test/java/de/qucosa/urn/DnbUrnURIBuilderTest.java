@@ -17,7 +17,6 @@
 
 package de.qucosa.urn;
 
-import de.qucosa.urn.DnbUrnURIBuilder;
 import org.junit.Test;
 
 import java.net.URI;

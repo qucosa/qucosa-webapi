@@ -28,8 +28,20 @@
         <constructor-arg value="de.qucosa.fedora.FedoraRepository"/>
     </bean>
 
+    <bean id="fileHandlingService" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="de.qucosa.webapi.v1.FileHandlingService"/>
+    </bean>
+
+    <bean id="urnConfiguration" class="de.qucosa.urn.URNConfiguration">
+        <constructor-arg index="0" value="bsz"/>
+        <constructor-arg index="1" value="15"/>
+        <constructor-arg index="2" value="qucosa"/>
+    </bean>
+
     <bean id="documentResource" class="de.qucosa.webapi.v1.DocumentResource">
         <constructor-arg index="0" ref="fedoraRepository"/>
+        <constructor-arg index="1" ref="urnConfiguration"/>
+        <constructor-arg index="2" ref="fileHandlingService"/>
     </bean>
 
     <bean id="relationResource" class="de.qucosa.webapi.v1.RelationResource">
@@ -40,12 +52,6 @@
 
     <bean id="searchResource" class="de.qucosa.webapi.v1.SearchResource">
         <constructor-arg index="0" ref="elasticSearchClient"/>
-    </bean>
-
-    <bean id="urnConfiguration" class="de.qucosa.urn.URNConfiguration">
-        <constructor-arg index="0" value="bsz"/>
-        <constructor-arg index="1" value="15"/>
-        <constructor-arg index="2" value="qucosa"/>
     </bean>
 
 </beans>

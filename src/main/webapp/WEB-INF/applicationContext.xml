@@ -45,6 +45,11 @@
 
     <import resource="file:${QUCOSA_HOME}/config/spring/*.xml"/>
 
+    <bean id="fileHandlingService" class="de.qucosa.webapi.v1.FileHandlingService">
+        <constructor-arg index="0" value="${file.documents.path}"/>
+        <constructor-arg index="1" value="${file.tempfiles.path}"/>
+    </bean>
+    
     <bean id="elasticSearchClientConfiguration" class="de.qucosa.elasticsearch.ElasticSearchClientConfiguration">
         <constructor-arg index="0" value="${es.cluster}"/>
         <constructor-arg index="1" value="${es.host}"/>

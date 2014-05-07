@@ -18,12 +18,14 @@
 package de.qucosa.webapi.v1;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
+import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.fedora.FedoraObjectBuilder;
 import de.qucosa.fedora.FedoraRepository;
 import de.qucosa.urn.DnbUrnURIBuilder;
 import de.qucosa.urn.URNConfiguration;
 import de.qucosa.urn.URNConfigurationException;
 import de.qucosa.util.DOMSerializer;
+import de.qucosa.util.Tuple;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlOptions;
@@ -51,10 +53,11 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
+import java.io.*;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 @RestController
@@ -65,6 +68,9 @@ class DocumentResource {
 
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
+    public static final String DSID_QUCOSA_XML = "QUCOSA-XML";
+    public static final String MIMETYPE_QUCOSA_V1_XML = "application/vnd.slub.qucosa-v1+xml";
+    public static final String DSID_QUCOSA_ATT = "QUCOSA-ATT-";
     private static final XPathFactory xPathFactory;
     private static final XPath xPath;
 
@@ -103,12 +109,19 @@ class DocumentResource {
     final private FedoraRepository fedoraRepository;
     @Autowired
     private HttpServletRequest httpServletRequest;
+
     private URNConfiguration urnConfiguration;
+    private FileHandlingService fileHandlingService;
 
     @Autowired
-    public DocumentResource(FedoraRepository fedoraRepository, URNConfiguration urnConfiguration) throws ParserConfigurationException, TransformerConfigurationException {
+    public DocumentResource(
+            FedoraRepository fedoraRepository,
+            URNConfiguration urnConfiguration,
+            FileHandlingService fileHandlingService)
+            throws ParserConfigurationException, TransformerConfigurationException {
         this.fedoraRepository = fedoraRepository;
         this.urnConfiguration = urnConfiguration;
+        this.fileHandlingService = fileHandlingService;
 
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
@@ -171,25 +184,26 @@ class DocumentResource {
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.GET)
     public ResponseEntity<String> getDocument(@PathVariable String qucosaID) throws FedoraClientException, IOException, SAXException, TransformerException {
-        InputStream dsContent = fedoraRepository.getDatastreamContent("qucosa:" + qucosaID, "QUCOSA-XML");
+        String pid = "qucosa:".concat(qucosaID);
+        InputStream dsContent = fedoraRepository.getDatastreamContent(pid, DSID_QUCOSA_XML);
         Document doc = documentBuilder.parse(dsContent);
         doc.normalizeDocument();
         removeEmtpyFields(doc);
+        removeFileElementsWithoutCorrespondingDatastream(pid, doc);
         return new ResponseEntity<>(DOMSerializer.toString(doc), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/document", method = RequestMethod.POST,
-            consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
+            consumes = {"text/xml", "application/xml", MIMETYPE_QUCOSA_V1_XML})
     public ResponseEntity<String> addDocument(
             @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,
             @RequestParam(value = "nis2", required = false) String libraryIdentifier,
             @RequestParam(value = "niss", required = false) String prefix,
             @RequestBody String body) throws Exception {
 
-        Document qucosaDocument = DocumentBuilderFactory.newInstance()
-                .newDocumentBuilder()
-                .parse(IOUtils.toInputStream(body));
+        Document qucosaDocument = documentBuilder.parse(IOUtils.toInputStream(body));
         assertBasicDocumentProperties(qucosaDocument);
+        assertFileElementProperties(qucosaDocument);
 
         FedoraObjectBuilder fob = buildDocument(qucosaDocument);
 
@@ -220,16 +234,29 @@ class DocumentResource {
 
         DigitalObjectDocument dod = fob.build();
         if (log.isDebugEnabled()) {
-            dumpToStdOut(dod);
+            log.debug("Ingest FOXML (there might be subsequent changes to datastreams):");
+            debugDump(dod);
         }
-        fedoraRepository.ingest(dod);
 
-        String okResponse = getDocumentCreatedResponse(id);
-        return new ResponseEntity<>(okResponse, HttpStatus.CREATED);
+        try {
+            fedoraRepository.ingest(dod);
+            handleFilesAndUpdateDatastreams(qucosaDocument, pid);
+            writeHtAccessFile(id, qucosaDocument);
+        } catch (Exception ex) {
+            log.error("Error ingesting object '{}' with PID '{}'. Rolling back ingest.", ex.getMessage(), pid);
+            try {
+                fedoraRepository.purge(pid);
+            } catch (FedoraClientException f) {
+                log.warn("Rollback of '{}' ingest failed: '{}'", pid, f.getMessage());
+            }
+            throw ex;
+        }
+
+        return new ResponseEntity<>(getDocumentCreatedResponse(id), HttpStatus.CREATED);
     }
 
     @RequestMapping(value = "/document/{qucosaID}", method = RequestMethod.PUT,
-            consumes = {"text/xml", "application/xml", "application/vnd.slub.qucosa-v1+xml"})
+            consumes = {"text/xml", "application/xml", MIMETYPE_QUCOSA_V1_XML})
     public ResponseEntity<String> updateDocument(
             @PathVariable String qucosaID,
             @RequestParam(value = "nis1", required = false) String libraryNetworkAbbreviation,
@@ -246,13 +273,20 @@ class DocumentResource {
         assertXPathNodeExists("/Opus[@version='2.0']", "No Opus node with version '2.0'.", updateDocument);
         assertXPathNodeExists("/Opus/Opus_Document", "No Opus_Document node found.", updateDocument);
 
+        if (log.isDebugEnabled()) {
+            log.debug("Incoming update XML:");
+            log.debug(DOMSerializer.toString(updateDocument));
+        }
+
         Document qucosaDocument =
                 documentBuilder.parse(fedoraRepository.getDatastreamContent(
-                        pid, "QUCOSA-XML"));
+                        pid, DSID_QUCOSA_XML));
 
-        Set<String> updateFields = updateWith(qucosaDocument, updateDocument);
+        List<FileUpdateOperation> fileUpdateOperations = new LinkedList<>();
+        Tuple<Collection<String>> updateOps = updateWith(qucosaDocument, updateDocument, fileUpdateOperations);
+
+        Set<String> updateFields = (Set<String>) updateOps.get(0);
         assertBasicDocumentProperties(qucosaDocument);
-
 
         List<String> newDcUrns = new LinkedList<>();
         if (updateFields.contains("IdentifierUrn")) {
@@ -271,10 +305,17 @@ class DocumentResource {
         modifyDcDatastream(pid, newDcUrns, newTitle);
 
 
+        NodeList newFileElements = (NodeList) xPath.evaluate("/Opus/Opus_Document/File", qucosaDocument, XPathConstants.NODESET);
+        for (int i = 0; i < newFileElements.getLength(); i++) {
+            Element fileElement = (Element) newFileElements.item(i);
+            if (!fileElement.hasAttribute("id")) {
+                handleFileElement(pid, i + 1, fileElement);
+            }
+        }
+
         InputStream inputStream = IOUtils.toInputStream(
                 DOMSerializer.toString(qucosaDocument));
-        fedoraRepository.modifyDatastreamContent(pid, "QUCOSA-XML", "application/vnd.slub.qucosa-v1+xml", inputStream);
-
+        fedoraRepository.modifyDatastreamContent(pid, DSID_QUCOSA_XML, MIMETYPE_QUCOSA_V1_XML, inputStream);
 
         String state = null;
         if (updateFields.contains("ServerState")) {
@@ -288,6 +329,10 @@ class DocumentResource {
         String ownerId = "qucosa";
         fedoraRepository.modifyObjectMetadata(pid, state, label, ownerId);
 
+        List<String> purgeDatastreamList = (List<String>) updateOps.get(1);
+        purgeFilesAndCorrespondingDatastreams(pid, purgeDatastreamList);
+        executeFileUpdateOperations(pid, fileUpdateOperations);
+        writeHtAccessFile(qucosaID, qucosaDocument);
 
         String okResponse = getDocumentUpdatedResponse();
         return new ResponseEntity<>(okResponse, HttpStatus.OK);
@@ -304,6 +349,235 @@ class DocumentResource {
     public ResponseEntity qucosaDocumentExceptionHandler(ResourceConflictException ex) throws XMLStreamException {
         log.error(ex.getMessage());
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    private void writeHtAccessFile(String qid, Document qucosaDocument) throws XPathExpressionException, IOException {
+        NodeList restrictedFiles = (NodeList) xPath.evaluate(
+                "//File[PathName!='' and FrontdoorVisible!='1']", qucosaDocument, XPathConstants.NODESET);
+
+        File htaccess = fileHandlingService.newFile(qid, ".htaccess");
+
+        if (htaccess == null) {
+            log.warn("Cannot write to .htaccess file.");
+            return;
+        }
+        if (restrictedFiles.getLength() == 0) {
+            if (htaccess.exists()) htaccess.delete();
+            return;
+        }
+
+        List<String> filenames = new LinkedList<>();
+        for (int i = 0; i < restrictedFiles.getLength(); i++) {
+            filenames.add(
+                    ((Element) restrictedFiles.item(i)).getElementsByTagName("PathName").item(0).getTextContent());
+        }
+
+        PrintWriter printWriter = new PrintWriter(htaccess);
+        for (String filename : filenames) {
+            printWriter.printf(
+                    "<Files \"%s\">\n\tOrder Deny,Allow\n\tDeny From All\n</Files>\n",
+                    filename
+            );
+        }
+        printWriter.close();
+    }
+
+    private void executeFileUpdateOperations(String pid, List<FileUpdateOperation> fileUpdateOperations)
+            throws IOException, FedoraClientException {
+        for (FileUpdateOperation fupo : fileUpdateOperations) {
+            fupo.setPid(pid)
+                    .setRepository(fedoraRepository)
+                    .setFileservice(fileHandlingService)
+                    .execute();
+        }
+    }
+
+    private FileUpdateOperation updateFileNodeWith(Element target, Element update)
+            throws FedoraClientException, IOException, XPathExpressionException {
+        FileUpdateOperation fupo = new FileUpdateOperation();
+        NodeList updateNodes = update.getChildNodes();
+        for (int i = 0; i < updateNodes.getLength(); i++) {
+            if (updateNodes.item(i).getNodeType() == Node.ELEMENT_NODE) {
+                Element updateField = (Element) updateNodes.item(i);
+                String updateFieldLocalName = updateField.getLocalName();
+                Element targetElement = (Element) target.getElementsByTagName(updateFieldLocalName).item(0);
+
+                if (targetElement == null) {
+                    targetElement = target.getOwnerDocument().createElement(updateFieldLocalName);
+                    target.appendChild(targetElement);
+                    targetElement.appendChild(target.getOwnerDocument().createTextNode(""));
+                }
+
+                String oldVal = targetElement.getTextContent();
+                String newVal = updateField.getTextContent();
+
+                if (!oldVal.equals(newVal)) {
+                    switch (updateFieldLocalName) {
+                        case "PathName":
+                            if (!newVal.isEmpty()) fupo.rename(oldVal, newVal);
+                            break;
+                        case "Label":
+                            fupo.newLabel(updateField.getTextContent());
+                            break;
+                        case "FrontdoorVisible":
+                            fupo.newState(determineDatastreamState(update));
+                            break;
+                    }
+                    targetElement.setTextContent(updateField.getTextContent());
+                }
+            }
+        }
+        return fupo;
+    }
+
+    private void purgeFilesAndCorrespondingDatastreams(String pid, List<String> purgeDatastreamList) throws FedoraClientException, URISyntaxException {
+        for (String dsid : purgeDatastreamList) {
+            DatastreamProfile datastreamProfile =
+                    fedoraRepository.getDatastreamProfile(pid, dsid);
+            String path = datastreamProfile.getDsLocation();
+            try {
+                Files.delete(
+                        new File(
+                                new URI(path)).toPath()
+                );
+            } catch (IOException ex) {
+                log.error("Deleting file {} failed: {}", path, ex.toString());
+                log.warn("Datastream {}/{} gets purged without removing the file", pid, dsid);
+            }
+            fedoraRepository.purgeDatastream(pid, dsid);
+        }
+    }
+
+    private void assertFileElementProperties(Document qucosaDocument) throws BadQucosaDocumentException {
+        NodeList fileNodes = qucosaDocument.getElementsByTagName("File");
+        for (int i = 0; i < fileNodes.getLength(); i++) {
+            Element fileElement = (Element) fileNodes.item(i);
+            Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
+            if ((tempFile == null) || (tempFile.getTextContent().isEmpty())) {
+                throw new BadQucosaDocumentException("Invalid File element found. TempFile elements is required.", qucosaDocument);
+            }
+        }
+    }
+
+    private void handleFilesAndUpdateDatastreams(Document qucosaXml, String pid)
+            throws Exception {
+        boolean isDocumentModified = handleFileElements(pid, qucosaXml);
+        if (isDocumentModified) {
+            InputStream inputStream = IOUtils.toInputStream(
+                    DOMSerializer.toString(qucosaXml));
+            fedoraRepository.modifyDatastreamContent(pid, DSID_QUCOSA_XML, MIMETYPE_QUCOSA_V1_XML, inputStream);
+        }
+    }
+
+    private boolean handleFileElements(String pid, Document qucosaXml)
+            throws Exception {
+        boolean modified = false;
+        Element root = (Element) qucosaXml.getElementsByTagName("Opus_Document").item(0);
+        NodeList fileNodes = root.getElementsByTagName("File");
+        for (int i = 0; i < fileNodes.getLength(); i++) {
+            Element fileElement = (Element) fileNodes.item(i);
+            handleFileElement(pid, i + 1, fileElement);
+            modified = true;
+        }
+        return modified;
+    }
+
+    private void handleFileElement(String pid, int itemIndex, Element fileElement)
+            throws URISyntaxException, IOException, FedoraClientException, XPathExpressionException {
+        Node tempFile = fileElement.getElementsByTagName("TempFile").item(0);
+        Node pathName = fileElement.getElementsByTagName("PathName").item(0);
+        if (tempFile == null || pathName == null) {
+            return;
+        }
+
+        String id = pid.substring("qucosa:".length());
+        String tmpFileName = tempFile.getTextContent();
+        String targetFilename = pathName.getTextContent();
+        URI fileUri = fileHandlingService.copyTempfileToTargetFileSpace(tmpFileName, targetFilename, id);
+
+        Node labelNode = fileElement.getElementsByTagName("Label").item(0);
+        String label = (labelNode != null) ? labelNode.getTextContent() : "";
+
+        final Path filePath = new File(fileUri).toPath();
+
+        String detectedContentType = Files.probeContentType(filePath);
+        if (!(Boolean) xPath.evaluate("MimeType[text()!='']", fileElement, XPathConstants.BOOLEAN)) {
+            if (detectedContentType != null) {
+                Element mimeTypeElement = fileElement.getOwnerDocument().createElement("MimeType");
+                mimeTypeElement.setTextContent(detectedContentType);
+                fileElement.appendChild(mimeTypeElement);
+            }
+        }
+
+        if (!(Boolean) xPath.evaluate("FileSize[text()!='']", fileElement, XPathConstants.BOOLEAN)) {
+            Element fileSizeElement = fileElement.getOwnerDocument().createElement("FileSize");
+            fileSizeElement.setTextContent(String.valueOf(Files.size(filePath)));
+            fileElement.appendChild(fileSizeElement);
+        }
+
+        String dsid = DSID_QUCOSA_ATT + (itemIndex);
+        String state = determineDatastreamState(fileElement);
+        DatastreamProfile dsp = fedoraRepository.createExternalReferenceDatastream(
+                pid,
+                dsid,
+                label,
+                fileUri,
+                detectedContentType,
+                state);
+        fileElement.setAttribute("id", String.valueOf(itemIndex));
+        addHashValue(fileElement, dsp);
+
+        fileElement.removeChild(tempFile);
+    }
+
+    private String determineDatastreamState(Element fileElement) throws XPathExpressionException {
+        if (!(Boolean) xPath.evaluate("FrontdoorVisible[text()='1']", fileElement, XPathConstants.BOOLEAN)) {
+            return "I";
+        }
+        return "A";
+    }
+
+    private void addHashValue(Element fileElement, DatastreamProfile dsp) {
+        if ((fileElement == null) || (dsp == null)) return;
+
+        String hashType = dsp.getDsChecksumType();
+        String hashValue = dsp.getDsChecksum();
+
+        if ((hashType != null) && (hashValue != null) && !hashType.isEmpty() && !hashValue.isEmpty()) {
+            Element hashValueElement = fileElement.getOwnerDocument().createElement("HashValue");
+            Element typeElement = fileElement.getOwnerDocument().createElement("Type");
+            Element valueElement = fileElement.getOwnerDocument().createElement("Value");
+
+            fileElement.appendChild(hashValueElement);
+            hashValueElement.appendChild(typeElement);
+            hashValueElement.appendChild(valueElement);
+
+            typeElement.setTextContent(hashType);
+            valueElement.setTextContent(hashValue);
+        }
+    }
+
+    private void removeFileElementsWithoutCorrespondingDatastream(String pid, Document doc) throws FedoraClientException {
+        Element root = (Element) doc.getElementsByTagName("Opus_Document").item(0);
+        NodeList fileNodes = root.getElementsByTagName("File");
+
+        // removing nodes from the node list changes the node list
+        ArrayList<Node> removees = new ArrayList<>(fileNodes.getLength());
+
+        for (int i = 0; i < fileNodes.getLength(); i++) {
+            Node fileNode = fileNodes.item(i);
+            Node idAttr = fileNode.getAttributes().getNamedItem("id");
+            if (idAttr == null) {
+                removees.add(fileNode);
+            } else {
+                String fid = idAttr.getTextContent();
+                String dsid = "QUCOSA-ATT-".concat(fid);
+                if (!fedoraRepository.hasDatastream(pid, dsid)) {
+                    removees.add(fileNode);
+                }
+            }
+        }
+        for (Node n : removees) root.removeChild(n);
     }
 
     private void addDocumentId(Document qucosaDocument, String id) {
@@ -333,10 +607,17 @@ class DocumentResource {
     private void removeEmtpyFields(Document doc) {
         Element root = (Element) doc.getElementsByTagName("Opus_Document").item(0);
         NodeList childNodes = root.getChildNodes();
+
+        // removing nodes from the node list changes the node list
+        // so for iteration is not invariant.
+        ArrayList<Node> removees = new ArrayList<>(childNodes.getLength());
+
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node childNode = childNodes.item(i);
-            if (!childNode.hasChildNodes()) root.removeChild(childNode);
+            if (!childNode.hasChildNodes()) removees.add(childNode);
         }
+        for (Node n : removees) root.removeChild(n);
+
     }
 
     private String determineState(Document qucosaDocument) throws XPathExpressionException {
@@ -382,9 +663,11 @@ class DocumentResource {
         fedoraRepository.modifyDatastreamContent(pid, "DC", "text/xml", modifiedDcStream);
     }
 
-    private Set<String> updateWith(Document target, final Document update) {
-        Element targetRoot = (Element) target.getElementsByTagName("Opus_Document").item(0);
-        Element updateRoot = (Element) update.getElementsByTagName("Opus_Document").item(0);
+    private Tuple<Collection<String>> updateWith(Document targetDocument, final Document updateDocument,
+                                                 List<FileUpdateOperation> fileUpdateOperations)
+            throws XPathExpressionException, IOException, FedoraClientException {
+        Element targetRoot = (Element) targetDocument.getElementsByTagName("Opus_Document").item(0);
+        Element updateRoot = (Element) updateDocument.getElementsByTagName("Opus_Document").item(0);
 
         Set<String> distinctUpdateFieldList = new LinkedHashSet<>();
         NodeList updateFields = updateRoot.getChildNodes();
@@ -394,9 +677,10 @@ class DocumentResource {
 
         for (String fn : distinctUpdateFieldList) {
             // cannot use getElementsByTagName() here because it searches recursively
-            List<Node> deleteList = getChildNodesByName(targetRoot, fn);
-            for (Node n : deleteList) {
-                targetRoot.removeChild(n);
+            for (Node victim : getChildNodesByName(targetRoot, fn)) {
+                if (!victim.getLocalName().equals("File")) {
+                    targetRoot.removeChild(victim);
+                }
             }
         }
 
@@ -404,14 +688,62 @@ class DocumentResource {
             // Update node needs to be cloned, otherwise it will
             // be removed from updateFields by adoptNode().
             Node updateNode = updateFields.item(i).cloneNode(true);
-            if (updateNode.hasChildNodes()) {
-                target.adoptNode(updateNode);
+            if (updateNode.hasChildNodes() && !updateNode.getLocalName().equals("File")) {
+                targetDocument.adoptNode(updateNode);
                 targetRoot.appendChild(updateNode);
             }
         }
 
-        target.normalizeDocument();
-        return distinctUpdateFieldList;
+        List<String> purgeDatastreamList = new LinkedList<>();
+        if ((Boolean) xPath.evaluate("//File", updateDocument, XPathConstants.BOOLEAN)) {
+            updateFileElementsInPlace(
+                    targetDocument,
+                    updateDocument,
+                    fileUpdateOperations,
+                    targetRoot,
+                    updateRoot, purgeDatastreamList);
+        }
+
+        targetDocument.normalizeDocument();
+        return new Tuple<>(distinctUpdateFieldList, purgeDatastreamList);
+    }
+
+    private void updateFileElementsInPlace(
+            Document targetDocument,
+            Document updateDocument,
+            List<FileUpdateOperation> fileUpdateOperations,
+            Element targetRoot,
+            Element updateRoot,
+            List<String> purgeDatastreamList)
+            throws
+            XPathExpressionException,
+            FedoraClientException,
+            IOException {
+        List<Node> targetFileNodes = getChildNodesByName(targetRoot, "File");
+        List<Node> updateFileNodes = getChildNodesByName(updateRoot, "File");
+        for (Node targetNode : targetFileNodes) {
+            Node idAttr = targetNode.getAttributes().getNamedItem("id");
+            if (idAttr != null) {
+                String idAttrValue = idAttr.getTextContent();
+                if (!idAttrValue.isEmpty() &&
+                        !((Boolean) xPath.evaluate("//File[@id='" + idAttrValue + "']", updateDocument, XPathConstants.BOOLEAN))) {
+                    purgeDatastreamList.add(DSID_QUCOSA_ATT.concat(idAttrValue));
+                }
+            }
+        }
+        for (Node updateNode : updateFileNodes) {
+            Node idAttr = updateNode.getAttributes().getNamedItem("id");
+            if (idAttr == null) {
+                targetDocument.adoptNode(updateNode);
+                targetRoot.appendChild(updateNode);
+            } else {
+                String idAttrValue = idAttr.getTextContent();
+                Node targetNode = (Node) xPath.evaluate("//File[@id='" + idAttrValue + "']", targetDocument, XPathConstants.NODE);
+                FileUpdateOperation fupo = updateFileNodeWith((Element) targetNode, (Element) updateNode);
+                fupo.setDsid(DSID_QUCOSA_ATT.concat(idAttrValue));
+                fileUpdateOperations.add(fupo);
+            }
+        }
     }
 
     private List<Node> getChildNodesByName(final Element targetRoot, String nodeName) {
@@ -494,11 +826,14 @@ class DocumentResource {
         return (fob.pid() != null) && (!fob.pid().isEmpty());
     }
 
-    private void dumpToStdOut(DigitalObjectDocument dod) {
+    private void debugDump(DigitalObjectDocument dod) {
         try {
-            dod.save(System.out, new XmlOptions().setSavePrettyPrint());
+            StringWriter stringWriter = new StringWriter();
+            dod.save(stringWriter, new XmlOptions().setSavePrettyPrint());
+            stringWriter.flush();
+            log.debug(stringWriter.toString());
         } catch (IOException e) {
-            log.warn(e.getMessage());
+            log.warn("Debug error: {}", e.getMessage());
         }
     }
 
@@ -534,8 +869,9 @@ class DocumentResource {
     private FedoraObjectBuilder buildDocument(Document qucosaDoc) throws Exception {
         FedoraObjectBuilder fob = new FedoraObjectBuilder();
 
-        String pid = xPath.evaluate("/Opus/Opus_Document/DocumentId", qucosaDoc);
-        if (!pid.isEmpty()) fob.pid("qucosa:" + pid);
+        String id = xPath.evaluate("/Opus/Opus_Document/DocumentId", qucosaDoc);
+        String pid = "qucosa:" + id;
+        if (!id.isEmpty()) fob.pid(pid);
 
         String ats = buildAts(qucosaDoc);
         if (!ats.isEmpty()) fob.label(ats);

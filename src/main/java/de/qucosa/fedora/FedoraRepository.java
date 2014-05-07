@@ -21,6 +21,7 @@ import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
 import com.yourmediashelf.fedora.client.request.*;
 import com.yourmediashelf.fedora.client.response.*;
+import com.yourmediashelf.fedora.generated.management.DatastreamProfile;
 import de.qucosa.util.Tuple;
 import fedora.fedoraSystemDef.foxml.DigitalObjectDocument;
 
@@ -28,6 +29,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +37,7 @@ public class FedoraRepository {
 
     public static final String RELATION_DERIVATIVE = "isDerivationOf";
     public static final String RELATION_CONSTITUENT = "isConstituentOf";
+    public static final String DEFAULT_CHECKSUM_TYPE = "SHA-512";
     private final FedoraClient fedoraClient;
 
     public FedoraRepository(FedoraClient fedoraClient) {
@@ -98,6 +101,28 @@ public class FedoraRepository {
         return fr.getEntityInputStream();
     }
 
+    public DatastreamProfile getDatastreamProfile(String pid, String dsid) throws FedoraClientException {
+        DatastreamProfileResponse datastreamProfileResponse =
+                (DatastreamProfileResponse) fedoraClient.execute(new GetDatastream(pid, dsid));
+        return datastreamProfileResponse.getDatastreamProfile();
+    }
+
+    public DatastreamProfile createExternalReferenceDatastream(String pid, String dsid, String label, URI target, String contentType, String state)
+            throws FedoraClientException, IOException {
+        DatastreamProfileResponse response =
+                (DatastreamProfileResponse) fedoraClient.execute(
+                        new AddDatastream(pid, dsid)
+                                .controlGroup("E")
+                                .checksumType(DEFAULT_CHECKSUM_TYPE)
+                                .dsState(state)
+                                .versionable(false)
+                                .dsLabel(label)
+                                .dsLocation(target.toASCIIString())
+                                .mimeType(contentType)
+                );
+        return response.getDatastreamProfile();
+    }
+
     public void modifyDatastreamContent(String pid, String dsid, String mimeType, InputStream input) throws FedoraClientException {
         FedoraResponse response = fedoraClient.execute(
                 new ModifyDatastream(pid, dsid)
@@ -107,6 +132,30 @@ public class FedoraRepository {
         int status = response.getStatus();
         if (status != 200) {
             throw new FedoraClientException(status, "Error writing modifying datastream content.");
+        }
+    }
+
+    public void updateExternalReferenceDatastream(String pid, String dsid, String newLabel, URI newUri, String newState)
+            throws FedoraClientException {
+        if ((newLabel != null) || (newUri != null) || (newState != null)) {
+            DatastreamProfile currentProfile = getDatastreamProfile(pid, dsid);
+            boolean modified = false;
+            ModifyDatastream request = new ModifyDatastream(pid, dsid);
+            if ((newLabel != null) && (!currentProfile.getDsLabel().equals(newLabel))) {
+                request.dsLabel(newLabel);
+                modified = true;
+            }
+            if ((newUri != null) && (!currentProfile.getDsLocation().equals(newUri.toASCIIString()))) {
+                request.dsLocation(newUri.toASCIIString());
+                modified = true;
+            }
+            if ((newState != null) && (!currentProfile.getDsState().equals(newState))) {
+                request.dsState(newState);
+                modified = true;
+            }
+            if (modified) {
+                fedoraClient.execute(request);
+            }
         }
     }
 
@@ -145,19 +194,32 @@ public class FedoraRepository {
         return (findObjectsResponse.getPids().size() > 0);
     }
 
+    public boolean hasDatastream(String pid, String dsid) throws FedoraClientException {
+        GetDatastreamResponse response = (GetDatastreamResponse) fedoraClient.execute(new GetDatastream(pid, dsid));
+        return (response.getStatus() == 200);
+    }
+
     public void modifyObjectMetadata(String pid, String state, String label, String owner)
             throws FedoraClientException {
         ModifyObject modifyObjectRequest = new ModifyObject(pid);
 
-        if ((state != null) && (! state.isEmpty())) modifyObjectRequest.state(state);
-        if ((label != null) && (! label.isEmpty())) modifyObjectRequest.label(label);
-        if ((owner != null) && (! owner.isEmpty())) modifyObjectRequest.ownerId(owner);
+        if ((state != null) && (!state.isEmpty())) modifyObjectRequest.state(state);
+        if ((label != null) && (!label.isEmpty())) modifyObjectRequest.label(label);
+        if ((owner != null) && (!owner.isEmpty())) modifyObjectRequest.ownerId(owner);
 
         FedoraResponse response = fedoraClient.execute(modifyObjectRequest);
         int status = response.getStatus();
         if (status != 200) {
             throw new FedoraClientException(status, "Error writing modifying object properties.");
         }
+    }
+
+    public void purge(String pid) throws FedoraClientException {
+        fedoraClient.execute(new PurgeObject(pid));
+    }
+
+    public void purgeDatastream(String pid, String dsid) throws FedoraClientException {
+        fedoraClient.execute(new PurgeDatastream(pid, dsid));
     }
 
     private void closeIfNotNull(FedoraResponse fr) {
