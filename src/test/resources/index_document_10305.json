@@ -1,22 +1,25 @@
 {
     "PID": "qucosa:10305",
-    "OBJ_STATE": "I",
-    "OBJ_DATE_CREATED": "2014-03-05T15:54:07.646Z",
-    "OBJ_DATE_LAST_MODIFIED": "2014-03-05T15:54:07.646Z",
-    "OBJ_OWNER_ID": "qucosa",
-    "OBJ_LABEL": "Dresdner Universitätsjournal",
-    "PUB_TAG_DDC": "070, 370",
-    "PUB_FILENAME": [
-        "UJ02-02.pdf",
-        "RS_2011_07_TUD.pdf"
-    ],
-    "PUB_ORIGINATOR": "Technische Universität Dresden",
-    "PUB_TAG": [
-        "Technische Universität Dresden, TU Dresden, Zeitschrift, Sachsen, Dresden, Hochschule, Bildung, Universität",
-        "journal, Saxony, university, higher education"
-    ],
-    "PUB_SUBMITTER": "Sco",
-    "PUB_ABSTRACT": "\"Dresdner Universitätsjournal\" vom 29. Januar 2002",
-    "PUB_URN": "urn:nbn:de:bsz:14-qucosa-103052",
-    "IDX_ERROR": false
+    "STATE": "I",
+    "CREATED_CREATED": "2014-03-05T15:54:07.646Z",
+    "LAST_MODIFIED_DATE": "2014-03-05T15:54:07.646Z",
+    "OWNER_ID": "qucosa",
+    "LABEL": "Dresdner Universitätsjournal",
+    "_dissemination": {
+        "_content": {
+            "PUB_TAG_DDC": "070, 370",
+            "PUB_FILENAME": [
+                "UJ02-02.pdf",
+                "RS_2011_07_TUD.pdf"
+            ],
+            "PUB_ORIGINATOR": "Technische Universität Dresden",
+            "PUB_TAG": [
+                "Technische Universität Dresden, TU Dresden, Zeitschrift, Sachsen, Dresden, Hochschule, Bildung, Universität",
+                "journal, Saxony, university, higher education"
+            ],
+            "PUB_SUBMITTER": "Sco",
+            "PUB_ABSTRACT": "\"Dresdner Universitätsjournal\" vom 29. Januar 2002",
+            "PUB_URN": "urn:nbn:de:bsz:14-qucosa-103052"
+        }
+    }
 }

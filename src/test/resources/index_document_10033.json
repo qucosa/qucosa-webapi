@@ -1,41 +1,45 @@
 {
     "PID": "qucosa:10033",
-    "OBJ_STATE": "A",
-    "OBJ_DATE_CREATED": "2014-02-28T14:02:57.225Z",
-    "OBJ_DATE_LAST_MODIFIED": "2014-02-28T14:02:57.225Z",
-    "OBJ_OWNER_ID": "qucosa",
-    "OBJ_LABEL": "Bacher, Michael: CNI-1493 inhibits Aβ production, plaque formation, and cognitive deterioration in an animal model of Alzheimer's disease",
-    "PUB_TAG_DDC": "616",
-    "PUB_DATE": "2012-12-03",
-    "PUB_FILENAME": [
-        "Bacher-et-al-2008.pdf",
-        "RS_2011_07_TUD.pdf"
-    ],
-    "PUB_TITLE": "CNI-1493 inhibits Aβ production, plaque formation, and cognitive deterioration in an animal model of Alzheimer's disease",
-    "PUB_ORIGINATOR": "Rockefeller University Press",
-    "PUB_TAG": [
-        "Alzheimer-Krankheit, Demenz, Neurologie, Morbus Alzheimer",
-        "Alzheimer's disease, dementia"
-    ],
-    "PUB_SUBMITTER": "Sara Maget",
-    "PUB_TYPE": "article",
-    "PUB_ABSTRACT": "Alzheimer's disease (AD) is characterized by neuronal atrophy caused by soluble amyloid β protein (Aβ) peptide \"oligomers\" and a microglial-mediated inflammatory response elicited by extensive amyloid deposition in the brain. We show that CNI-1493, a tetravalent guanylhydrazone with established antiinflammatory properties, interferes with Aβ assembly and protects neuronal cells from the toxic effect of soluble Aβ oligomers. Administration of CNI-1493 to TgCRND8 mice overexpressing human amyloid precursor protein (APP) for a treatment period of 8 wk significantly reduced Aβ deposition. CNI-1493 treatment resulted in 70% reduction of amyloid plaque area in the cortex and 87% reduction in the hippocampus of these animals. Administration of CNI-1493 significantly improved memory performance in a cognition task compared with vehicle-treated mice. In vitro analysis of CNI-1493 on APP processing in an APP-overexpressing cell line revealed a significant dose-dependent decrease of total Aβ accumulation. This study indicates that the antiinflammatory agent CNI-1493 can ameliorate the pathophysiology and cognitive defects in a murine model of AD.",
-    "PUB_AUTHOR": [
-        "Michael Bacher",
-        "Richard Dodel",
-        "Bayan Aljabari",
-        "Kathy Keyvani",
-        "Phillippe Marambaud",
-        "Rakez Kayed",
-        "Charles Glabe",
-        "Nicole Goertz",
-        "Anne Hoppmann",
-        "Norbert Sachser",
-        "Jens Klotsche",
-        "Susanne Schnell",
-        "Lars Lewejohann",
-        "Yousef Al-Abed"
-    ],
-    "PUB_URN": "urn:nbn:de:bsz:14-qucosa-100338",
-    "IDX_ERROR": false
+    "STATE": "A",
+    "CREATED_DATE": "2014-02-28T14:02:57.225Z",
+    "LAST_MODIFIED_DATE": "2014-02-28T14:02:57.225Z",
+    "OWNER_ID": "qucosa",
+    "LABEL": "Bacher, Michael: CNI-1493 inhibits Aβ production, plaque formation, and cognitive deterioration in an animal model of Alzheimer's disease",
+    "_dissemination": {
+        "_content": {
+            "PUB_TAG_DDC": "616",
+            "PUB_DATE": "2012-12-03",
+            "PUB_FILENAME": [
+                "Bacher-et-al-2008.pdf",
+                "RS_2011_07_TUD.pdf"
+            ],
+            "PUB_TITLE": "CNI-1493 inhibits Aβ production, plaque formation, and cognitive deterioration in an animal model of Alzheimer's disease",
+            "PUB_ORIGINATOR": "Rockefeller University Press",
+            "PUB_TAG": [
+                "Alzheimer-Krankheit, Demenz, Neurologie, Morbus Alzheimer",
+                "Alzheimer's disease, dementia"
+            ],
+            "PUB_SUBMITTER": "Sara Maget",
+            "PUB_TYPE": "article",
+            "PUB_ABSTRACT": "Alzheimer's disease (AD) is characterized by neuronal atrophy caused by soluble amyloid β protein (Aβ) peptide \"oligomers\" and a microglial-mediated inflammatory response elicited by extensive amyloid deposition in the brain. We show that CNI-1493, a tetravalent guanylhydrazone with established antiinflammatory properties, interferes with Aβ assembly and protects neuronal cells from the toxic effect of soluble Aβ oligomers. Administration of CNI-1493 to TgCRND8 mice overexpressing human amyloid precursor protein (APP) for a treatment period of 8 wk significantly reduced Aβ deposition. CNI-1493 treatment resulted in 70% reduction of amyloid plaque area in the cortex and 87% reduction in the hippocampus of these animals. Administration of CNI-1493 significantly improved memory performance in a cognition task compared with vehicle-treated mice. In vitro analysis of CNI-1493 on APP processing in an APP-overexpressing cell line revealed a significant dose-dependent decrease of total Aβ accumulation. This study indicates that the antiinflammatory agent CNI-1493 can ameliorate the pathophysiology and cognitive defects in a murine model of AD.",
+            "PUB_AUTHOR": [
+                "Michael Bacher",
+                "Richard Dodel",
+                "Bayan Aljabari",
+                "Kathy Keyvani",
+                "Phillippe Marambaud",
+                "Rakez Kayed",
+                "Charles Glabe",
+                "Nicole Goertz",
+                "Anne Hoppmann",
+                "Norbert Sachser",
+                "Jens Klotsche",
+                "Susanne Schnell",
+                "Lars Lewejohann",
+                "Yousef Al-Abed"
+            ],
+            "PUB_URN": "urn:nbn:de:bsz:14-qucosa-100338"
+        }
+    }
+
 }

@@ -1,21 +1,24 @@
 {
     "PID": "qucosa:10044",
-    "OBJ_STATE": "A",
-    "OBJ_DATE_CREATED": "2014-02-28T14:02:59.852Z",
-    "OBJ_DATE_LAST_MODIFIED": "2014-02-28T14:02:59.852Z",
-    "OBJ_OWNER_ID": "qucosa",
-    "OBJ_LABEL": "Kirsten, Daniel: A Connection between the Star Problem and the Finite Power Property in Trace Monoids ",
-    "PUB_TAG_DDC": "004",
-    "PUB_ORIGINATOR_SUB": "Fakultät Informatik",
-    "PUB_DATE": "2012-11-28",
-    "PUB_FILENAME": ["tud_TB_1998-09.pdf", "tud98-09.ps", "RS_2011_07_TUD_PoD.pdf"],
-    "PUB_TITLE": "A Connection between the Star Problem and the Finite Power Property in Trace Monoids",
-    "PUB_ORIGINATOR": "Technische Universität Dresden",
-    "PUB_TAG": ["formale Sprachen, Halbgruppe, Mathematik", "star problem, trace monoids, formal languages"],
-    "PUB_SUBMITTER": "MV",
-    "PUB_TYPE": "research_paper",
-    "PUB_ABSTRACT": "This paper deals with a connection between two decision problems for recognizable trace languages: the star problem and the finite power property problem. Due to a theorem by Richomme from 1994 [26, 28], we know that both problems are decidable in trace monoids which do not contain a C4 submonoid. It is not known, whether the star problem or the finite power property are decidable in the C4 or in trace monoids containing a C4.\nIn this paper, we show a new connection between these problems. Assume a trace monoid IM (Σ, I) which is isomorphic to the Cartesian Product of two disjoint trace monoids IM (Σ1, I1) and IM (Σ2, I2). Assume further a recognizable language L in IM (Σ, I) such that every trace in L contains at least one letter in Σ1 and at least in one letter in Σ2. Then, the main theorem of this paper asserts that L* is recognizable iff L has the finite power property.",
-    "PUB_AUTHOR": "Daniel Kirsten",
-    "PUB_URN": "urn:nbn:de:bsz:14-qucosa-100445",
-    "IDX_ERROR": false
+    "STATE": "A",
+    "CREATED_DATE": "2014-02-28T14:02:59.852Z",
+    "LAST_MODIFIED_DATE": "2014-02-28T14:02:59.852Z",
+    "OWNER_ID": "qucosa",
+    "LABEL": "Kirsten, Daniel: A Connection between the Star Problem and the Finite Power Property in Trace Monoids ",
+    "_dissemination": {
+        "_content": {
+            "PUB_TAG_DDC": "004",
+            "PUB_ORIGINATOR_SUB": "Fakultät Informatik",
+            "PUB_DATE": "2012-11-28",
+            "PUB_FILENAME": ["tud_TB_1998-09.pdf", "tud98-09.ps", "RS_2011_07_TUD_PoD.pdf"],
+            "PUB_TITLE": "A Connection between the Star Problem and the Finite Power Property in Trace Monoids",
+            "PUB_ORIGINATOR": "Technische Universität Dresden",
+            "PUB_TAG": ["formale Sprachen, Halbgruppe, Mathematik", "star problem, trace monoids, formal languages"],
+            "PUB_SUBMITTER": "MV",
+            "PUB_TYPE": "research_paper",
+            "PUB_ABSTRACT": "This paper deals with a connection between two decision problems for recognizable trace languages: the star problem and the finite power property problem. Due to a theorem by Richomme from 1994 [26, 28], we know that both problems are decidable in trace monoids which do not contain a C4 submonoid. It is not known, whether the star problem or the finite power property are decidable in the C4 or in trace monoids containing a C4.\nIn this paper, we show a new connection between these problems. Assume a trace monoid IM (Σ, I) which is isomorphic to the Cartesian Product of two disjoint trace monoids IM (Σ1, I1) and IM (Σ2, I2). Assume further a recognizable language L in IM (Σ, I) such that every trace in L contains at least one letter in Σ1 and at least in one letter in Σ2. Then, the main theorem of this paper asserts that L* is recognizable iff L has the finite power property.",
+            "PUB_AUTHOR": "Daniel Kirsten",
+            "PUB_URN": "urn:nbn:de:bsz:14-qucosa-100445"
+        }
+    }
 }

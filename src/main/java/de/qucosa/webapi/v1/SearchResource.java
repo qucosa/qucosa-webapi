@@ -68,18 +68,20 @@ public class SearchResource {
     @Autowired
     private HttpServletRequest httpServletRequest;
 
+    public static final String DISSEMINATION_CONTENT_PREFIX = "_dissemination._content.";
+
     static {
         searchFieldnameMap = new HashMap<>();
-        searchFieldnameMap.put("abstract", "PUB_ABSTRACT");
-        searchFieldnameMap.put("author", "PUB_AUTHOR");
-        searchFieldnameMap.put("completeddate", "PUB_DATE");
+        searchFieldnameMap.put("abstract", DISSEMINATION_CONTENT_PREFIX + "PUB_ABSTRACT");
+        searchFieldnameMap.put("author", DISSEMINATION_CONTENT_PREFIX + "PUB_AUTHOR");
+        searchFieldnameMap.put("completeddate", DISSEMINATION_CONTENT_PREFIX + "PUB_DATE");
         searchFieldnameMap.put("docid", "PID");
-        searchFieldnameMap.put("doctype", "PUB_TYPE");
-        searchFieldnameMap.put("firstlevelname", "PUB_ORIGINATOR");
-        searchFieldnameMap.put("person", "PUB_SUBMITTER");
-        searchFieldnameMap.put("secondlevelname", "PUB_ORIGINATOR_SUB");
-        searchFieldnameMap.put("serverstate", "OBJ_STATE");
-        searchFieldnameMap.put("title", "PUB_TITLE");
+        searchFieldnameMap.put("doctype", DISSEMINATION_CONTENT_PREFIX + "PUB_TYPE");
+        searchFieldnameMap.put("firstlevelname", DISSEMINATION_CONTENT_PREFIX + "PUB_ORIGINATOR");
+        searchFieldnameMap.put("person", DISSEMINATION_CONTENT_PREFIX + "PUB_SUBMITTER");
+        searchFieldnameMap.put("secondlevelname", DISSEMINATION_CONTENT_PREFIX + "PUB_ORIGINATOR_SUB");
+        searchFieldnameMap.put("serverstate", "STATE");
+        searchFieldnameMap.put("title", DISSEMINATION_CONTENT_PREFIX + "PUB_TITLE");
 
         sortBuilderMap = new HashMap<>();
         sortBuilderMap.put("abstract", SortBuilders.fieldSort("PUB_ABSTRACT"));
@@ -101,7 +103,7 @@ public class SearchResource {
         queryBuilderMap.put("firstlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR").matchQuery());
         queryBuilderMap.put("person", InternalQueryBuilder.field("PUB_SUBMITTER").matchQuery());
         queryBuilderMap.put("secondlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR_SUB").matchQuery());
-        queryBuilderMap.put("serverstate", InternalQueryBuilder.field("OBJ_STATE").termQuery().mapToFedoraState());
+        queryBuilderMap.put("serverstate", InternalQueryBuilder.field("STATE").termQuery().mapToFedoraState());
         queryBuilderMap.put("subject", InternalQueryBuilder.field("PUB_TAG", "PUB_TAG_DDC").multiMatchQuery());
         queryBuilderMap.put("title", InternalQueryBuilder.field("PUB_TITLE").matchQuery());
     }
@@ -122,8 +124,8 @@ public class SearchResource {
             extractQueriesAndSortParameters(requestParameterMap, queries, orderby);
             BoolQueryBuilder bqb = createBoolQueryBuilder(queries);
             SearchRequestBuilder searchRequestBuilder = elasticSearchClient
-                    .prepareSearch("qucosa")
-                    .setTypes("documents")
+                    .prepareSearch("fedora")
+                    .setTypes("object")
                     .setScroll(new TimeValue(60, TimeUnit.SECONDS))
                     .setSize(100)
                     .setQuery(bqb)
@@ -217,8 +219,7 @@ public class SearchResource {
             String q = queries.get(k);
             result.add(queryBuilderMap.get(k).query(q).build());
         }
-        result.add(termQuery("OBJ_OWNER_ID", "qucosa"));
-        result.add(termQuery("IDX_ERROR", false));
+        result.add(termQuery("OWNER_ID", "qucosa"));
         return result;
     }
 
@@ -269,6 +270,8 @@ public class SearchResource {
         w.writeEndElement();
         w.writeEndDocument();
         w.flush();
+
+        log.debug(sw.toString());
 
         return new ResponseEntity<>(sw.toString(), HttpStatus.OK);
     }

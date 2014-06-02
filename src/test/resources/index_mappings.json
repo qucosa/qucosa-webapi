@@ -5,15 +5,25 @@
             "store": true,
             "index": "not_analyzed"
         },
-        "OBJ_STATE": {
+        "STATE": {
             "type": "string",
             "store": true,
             "index": "not_analyzed"
         },
-        "PUB_TYPE": {
-            "type": "string",
-            "store": true,
-            "index": "not_analyzed"
+        "_dissemination": {
+            "properties": {
+                "_content": {
+                    "properties": {
+                        "PUB_TYPE": {
+                            "type": "string",
+                            "store": true,
+                            "index": "not_analyzed"
+                        }
+                    }
+
+                }
+            }
         }
+
     }
 }

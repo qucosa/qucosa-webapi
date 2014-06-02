@@ -41,23 +41,21 @@ public class ElasticSearchTestClient {
 
         Client elasticSearchClient = node.client();
 
-        elasticSearchClient.admin().indices().prepareCreate("qucosa").execute().actionGet();
+        elasticSearchClient.admin().indices().prepareCreate("fedora").execute().actionGet();
 
-        elasticSearchClient.admin().indices().preparePutMapping("qucosa")
-                .setType("documents")
+        elasticSearchClient.admin().indices().preparePutMapping("fedora")
+                .setType("object")
                 .setSource(getJson("/index_mappings.json"))
                 .execute()
                 .actionGet();
 
         elasticSearchClient.prepareBulk()
-                .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:10044")
+                .add(elasticSearchClient.prepareIndex("fedora", "object", "qucosa:10044")
                         .setSource(getJson("/index_document_10044.json")))
-                .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:10033")
+                .add(elasticSearchClient.prepareIndex("fedora", "object", "qucosa:10033")
                         .setSource(getJson("/index_document_10033.json")))
-                .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:10305")
+                .add(elasticSearchClient.prepareIndex("fedora", "object", "qucosa:10305")
                         .setSource(getJson("/index_document_10305.json")))
-                .add(elasticSearchClient.prepareIndex("qucosa", "documents", "qucosa:error")
-                        .setSource(getJson("/index_document_error.json")))
                 .setRefresh(true)
                 .execute()
                 .actionGet();
