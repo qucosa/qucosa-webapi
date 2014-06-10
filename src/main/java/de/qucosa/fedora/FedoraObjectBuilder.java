@@ -150,6 +150,19 @@ public class FedoraObjectBuilder {
         RDFDocument.RDF rdf = rdfDocument.addNewRDF();
         RDFDocument.RDF.Description desc = rdf.addNewDescription();
         desc.setAbout("info:fedora/" + pid);
+
+        // connect to Content Model
+        {
+            Element e = desc.getDomNode().getOwnerDocument().createElementNS(
+                    "info:fedora/fedora-system:def/model#",
+                    "hasModel");
+            e.setAttributeNS(
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+                    "resource",
+                    "info:fedora/qucosa:CModel");
+            desc.getDomNode().appendChild(e);
+        }
+
         if (parentCollectionPid != null) {
             Element e = desc.getDomNode().getOwnerDocument().createElementNS(
                     "info:fedora/fedora-system:def/relations-external#", "isMemberOfCollection");

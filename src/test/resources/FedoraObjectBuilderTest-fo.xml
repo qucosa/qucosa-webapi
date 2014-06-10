@@ -41,6 +41,7 @@
             <fox:xmlContent>
                 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
                     <rdf:Description rdf:about="info:fedora/qucosa:4711">
+                        <mod:hasModel rdf:resource="info:fedora/qucosa:CModel" xmlns:mod="info:fedora/fedora-system:def/model#"/>
                         <rel:isMemberOfCollection rdf:resource="info:fedora/qucosa:slub"
                                                   xmlns:rel="info:fedora/fedora-system:def/relations-external#"/>
                     </rdf:Description>
