@@ -59,16 +59,11 @@ public class SearchResource {
 
     public static final String XLINK_NAMESPACE_PREFIX = "xlink";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
+    public static final String DISSEMINATION_CONTENT_PREFIX = "_dissemination._content.";
+
     private static Map<String, String> searchFieldnameMap;
     private static Map<String, SortBuilder> sortBuilderMap;
     private static Map<String, InternalQueryBuilder> queryBuilderMap;
-    private final Logger log = LoggerFactory.getLogger(SearchResource.class);
-    private final Client elasticSearchClient;
-    private final XMLOutputFactory xmlOutputFactory;
-    @Autowired
-    private HttpServletRequest httpServletRequest;
-
-    public static final String DISSEMINATION_CONTENT_PREFIX = "_dissemination._content.";
 
     static {
         searchFieldnameMap = new HashMap<>();
@@ -92,21 +87,51 @@ public class SearchResource {
         sortBuilderMap.put("title", SortBuilders.fieldSort("PUB_TITLE"));
 
         queryBuilderMap = new HashMap<>();
-        queryBuilderMap.put("abstract", InternalQueryBuilder.field("PUB_ABSTRACT").matchQuery());
-        queryBuilderMap.put("author", InternalQueryBuilder.field("PUB_AUTHOR").matchQuery());
-        queryBuilderMap.put("completeddate", InternalQueryBuilder.field("PUB_DATE").dateRangeQuery());
+        queryBuilderMap.put("abstract", InternalQueryBuilder
+                .matchQuery()
+                .field("PUB_ABSTRACT"));
+        queryBuilderMap.put("author", InternalQueryBuilder
+                .matchQuery()
+                .field("PUB_AUTHOR"));
+        queryBuilderMap.put("completeddate", InternalQueryBuilder
+                .dateRangeQuery()
+                .field("PUB_DATE"));
         queryBuilderMap.put("defaultsearchfield", InternalQueryBuilder
-                .field("PUB_ABSTRACT", "PUB_AUTHOR", "PUB_ORIGINATOR", "PUB_TAG", "PUB_TITLE", "PUB_TYPE")
                 .stringQuery());
-        queryBuilderMap.put("docid", InternalQueryBuilder.field("PID").termQuery().mapToFedoraId());
-        queryBuilderMap.put("doctype", InternalQueryBuilder.field("PUB_TYPE").termQuery().replaceQuestionmarkQuoting());
-        queryBuilderMap.put("firstlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR").matchQuery());
-        queryBuilderMap.put("person", InternalQueryBuilder.field("PUB_SUBMITTER").matchQuery());
-        queryBuilderMap.put("secondlevelname", InternalQueryBuilder.field("PUB_ORIGINATOR_SUB").matchQuery());
-        queryBuilderMap.put("serverstate", InternalQueryBuilder.field("STATE").termQuery().mapToFedoraState());
-        queryBuilderMap.put("subject", InternalQueryBuilder.field("PUB_TAG", "PUB_TAG_DDC").multiMatchQuery());
-        queryBuilderMap.put("title", InternalQueryBuilder.field("PUB_TITLE").matchQuery());
+        queryBuilderMap.put("docid", InternalQueryBuilder
+                .termQuery()
+                .mapToFedoraId()
+                .field("PID"));
+        queryBuilderMap.put("doctype", InternalQueryBuilder
+                .termQuery()
+                .field("PUB_TYPE")
+                .replaceQuestionmarkQuoting());
+        queryBuilderMap.put("firstlevelname", InternalQueryBuilder
+                .matchQuery()
+                .field("PUB_ORIGINATOR"));
+        queryBuilderMap.put("person", InternalQueryBuilder
+                .matchQuery()
+                .field("PUB_SUBMITTER"));
+        queryBuilderMap.put("secondlevelname", InternalQueryBuilder
+                .matchQuery()
+                .field("PUB_ORIGINATOR_SUB"));
+        queryBuilderMap.put("serverstate", InternalQueryBuilder
+                .termQuery()
+                .field("STATE")
+                .mapToFedoraState());
+        queryBuilderMap.put("subject", InternalQueryBuilder
+                .multiMatchQuery()
+                .field("PUB_TAG", "PUB_TAG_DDC"));
+        queryBuilderMap.put("title", InternalQueryBuilder
+                .matchQuery()
+                .field("PUB_TITLE"));
     }
+
+    private final Logger log = LoggerFactory.getLogger(SearchResource.class);
+    private final Client elasticSearchClient;
+    private final XMLOutputFactory xmlOutputFactory;
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     @Autowired
     public SearchResource(Client elasticSearchClient) {
@@ -161,11 +186,20 @@ public class SearchResource {
     }
 
     private BoolQueryBuilder createBoolQueryBuilder(Map<String, String> queries) throws Exception {
-        List<QueryBuilder> queryBuilders = getFedoraQueryBuilders(queries);
         BoolQueryBuilder bqb = QueryBuilders.boolQuery();
-        for (QueryBuilder qb : queryBuilders) {
-            bqb.must(qb);
+        for (String k : queries.keySet()) {
+            String q = queries.get(k);
+            QueryBuilder qb = queryBuilderMap.get(k).query(q).build();
+            if (k.equals("defaultsearchfield")) {
+                // search in object and (child) datastream
+                bqb.should(qb);
+                bqb.should(QueryBuilders.hasChildQuery("datastream", qb));
+                bqb.minimumNumberShouldMatch(1);
+            } else {
+                bqb.must(qb);
+            }
         }
+        bqb.must(termQuery("OWNER_ID", "qucosa"));
         return bqb;
     }
 

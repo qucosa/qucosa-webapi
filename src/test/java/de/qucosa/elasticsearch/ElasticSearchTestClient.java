@@ -45,9 +45,18 @@ public class ElasticSearchTestClient {
 
         elasticSearchClient.admin().indices().preparePutMapping("fedora")
                 .setType("object")
-                .setSource(getJson("/index_mappings.json"))
-                .execute()
-                .actionGet();
+                .setSource(getJson("/mapping-object.json"))
+                .execute().actionGet();
+
+        elasticSearchClient.admin().indices().preparePutMapping("fedora")
+                .setType("datastream")
+                .setSource(getJson("/mapping-datastream.json"))
+                .execute().actionGet();
+
+        elasticSearchClient.admin().indices().preparePutMapping("fedora")
+                .setType("error")
+                .setSource(getJson("/mapping-error.json"))
+                .execute().actionGet();
 
         elasticSearchClient.prepareBulk()
                 .add(elasticSearchClient.prepareIndex("fedora", "object", "qucosa:10044")
@@ -56,6 +65,13 @@ public class ElasticSearchTestClient {
                         .setSource(getJson("/index_document_10033.json")))
                 .add(elasticSearchClient.prepareIndex("fedora", "object", "qucosa:10305")
                         .setSource(getJson("/index_document_10305.json")))
+                .add(elasticSearchClient.prepareIndex("fedora", "object", "qucosa:1071")
+                        .setSource(getJson("/index_object_1071.json")))
+
+                .add(elasticSearchClient.prepareIndex("fedora", "datastream", "qucosa:1071:QUCOSA-ATT-1")
+                        .setParent("qucosa:1071")
+                        .setSource(getJson("/index_datastream_1071.json")))
+
                 .setRefresh(true)
                 .execute()
                 .actionGet();

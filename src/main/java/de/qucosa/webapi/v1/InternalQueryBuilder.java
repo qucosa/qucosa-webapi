@@ -30,28 +30,42 @@ import java.util.regex.Pattern;
 
 class InternalQueryBuilder {
     private static final Pattern REGEXP_DATE_PATTERN = Pattern.compile("^\\[(\\d{8})\\sTO\\s(\\d{8})\\]$");
-    private String fieldName;
-    private String[] moreFields;
+    private String[] fields = new String[]{};
     private String query;
+    private QueryType queryType = QueryType.TermQuery;
+    private MappingType mappingType = MappingType.NoMapping;
 
-    private InternalQueryBuilder(String name, @Nullable String... moreNames) {
-        this.fieldName = name;
-        this.moreFields = moreNames;
+    private InternalQueryBuilder(QueryType type) {
+        this.queryType = type;
     }
 
-    static InternalQueryBuilder field(String name, @Nullable String... names) {
-        return new InternalQueryBuilder(name, names);
+    static InternalQueryBuilder termQuery() {
+        return new InternalQueryBuilder(QueryType.TermQuery);
+    }
+
+    static InternalQueryBuilder matchQuery() {
+        return new InternalQueryBuilder(QueryType.MatchQuery);
+    }
+
+    static InternalQueryBuilder multiMatchQuery() {
+        return new InternalQueryBuilder(QueryType.MultiMatchQuery);
+    }
+
+    static InternalQueryBuilder stringQuery() {
+        return new InternalQueryBuilder(QueryType.StringQuery);
+    }
+
+    static InternalQueryBuilder dateRangeQuery() {
+        return new InternalQueryBuilder(QueryType.DateRangeQuery);
+    }
+
+    public InternalQueryBuilder field(@Nullable String... names) {
+        this.fields = names;
+        return this;
     }
 
     public InternalQueryBuilder query(String query) {
         this.query = query;
-        return this;
-    }
-
-    private QueryType queryType = QueryType.TermQuery;
-
-    public InternalQueryBuilder termQuery() {
-        this.queryType = QueryType.TermQuery;
         return this;
     }
 
@@ -65,31 +79,39 @@ class InternalQueryBuilder {
         return this;
     }
 
-    public InternalQueryBuilder matchQuery() {
-        this.queryType = QueryType.MatchQuery;
-        return this;
-    }
-
-    public InternalQueryBuilder multiMatchQuery() {
-        this.queryType = QueryType.MultiMatchQuery;
-        return this;
-    }
-
-    public InternalQueryBuilder stringQuery() {
-        this.queryType = QueryType.StringQuery;
-        return this;
-    }
-
-    private MappingType mappingType = MappingType.NoMapping;
-
-    public InternalQueryBuilder dateRangeQuery() {
-        this.queryType = QueryType.DateRangeQuery;
-        return this;
-    }
-
     public InternalQueryBuilder replaceQuestionmarkQuoting() {
-        this.mappingType =  MappingType.MapToFedoraDoctype;
+        this.mappingType = MappingType.MapToFedoraDoctype;
         return this;
+    }
+
+    public QueryBuilder build() throws Exception {
+        String mappedQuery = mapQueryString();
+
+        switch (queryType) {
+            case TermQuery:
+                return QueryBuilders.termQuery(fields[0], mappedQuery);
+            case MatchQuery:
+                return QueryBuilders.matchQuery(fields[0], mappedQuery);
+            case MultiMatchQuery:
+                MultiMatchQueryBuilder mqb = QueryBuilders.multiMatchQuery(mappedQuery);
+                for (String f : fields) mqb.field(f);
+                return mqb;
+            case StringQuery:
+                QueryStringQueryBuilder qsb = QueryBuilders.queryString(mappedQuery);
+                for (String f : fields) qsb.field(f);
+                return qsb;
+            case DateRangeQuery:
+                Matcher matcher = REGEXP_DATE_PATTERN.matcher(mappedQuery);
+                if (matcher.matches()) {
+                    return QueryBuilders.rangeQuery(fields[0])
+                            .from(mapToFedoraDate(matcher.group(1)))
+                            .to(mapToFedoraDate(matcher.group(2)));
+                } else {
+                    return QueryBuilders.termQuery(fields[0], mapToFedoraDate(mappedQuery));
+                }
+            default:
+                throw new Exception("No search query type specified.");
+        }
     }
 
     private String mapToFedoraDate(String date) throws ParseException {
@@ -137,38 +159,6 @@ class InternalQueryBuilder {
 
     private enum MappingType {
         NoMapping, MapToFedoraState, MapToFedoraId, MapToFedoraDoctype
-    }
-
-    QueryBuilder build() throws Exception {
-        String mappedQuery = mapQueryString();
-
-        switch (queryType) {
-            case TermQuery:
-                return QueryBuilders.termQuery(fieldName, mappedQuery);
-            case MatchQuery:
-                return QueryBuilders.matchQuery(fieldName, mappedQuery);
-            case MultiMatchQuery:
-                MultiMatchQueryBuilder mqb = QueryBuilders.multiMatchQuery(mappedQuery);
-                mqb.field(fieldName);
-                for (String f : moreFields) mqb.field(f);
-                return mqb;
-            case StringQuery:
-                QueryStringQueryBuilder qsb = QueryBuilders.queryString(mappedQuery);
-                qsb.field(fieldName);
-                for (String f : moreFields) qsb.field(f);
-                return qsb;
-            case DateRangeQuery:
-                Matcher matcher = REGEXP_DATE_PATTERN.matcher(mappedQuery);
-                if (matcher.matches()) {
-                    return QueryBuilders.rangeQuery(fieldName)
-                            .from(mapToFedoraDate(matcher.group(1)))
-                            .to(mapToFedoraDate(matcher.group(2)));
-                } else {
-                    return QueryBuilders.termQuery(fieldName, mapToFedoraDate(mappedQuery));
-                }
-            default:
-                throw new Exception("No search query type specified.");
-        }
     }
 
 

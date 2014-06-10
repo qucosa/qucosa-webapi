@@ -18,6 +18,7 @@
 package de.qucosa.webapi.v1;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,7 +115,7 @@ public class SearchResourceTest {
     public void findsAllPublishedDocuments() throws Exception {
         mockMvc.perform(get("/search?field0=serverstate&query0=published"))
                 .andExpect(status().isOk())
-                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("2"));
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("3"));
     }
 
     @Test
@@ -164,9 +165,10 @@ public class SearchResourceTest {
     public void hitsOrderedByDate() throws Exception {
         mockMvc.perform(get("/search?field0=serverstate&query0=published&orderby0=completeddate&orderhow0=desc"))
                 .andExpect(status().isOk())
-                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("2"))
-                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@completeddate").string("20121203"))
-                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[2]/@completeddate").string("20121128"));
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("3"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@completeddate").string("20140610"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[2]/@completeddate").string("20121203"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[3]/@completeddate").string("20121128"));
     }
 
     @Test
@@ -183,6 +185,14 @@ public class SearchResourceTest {
                 .andExpect(status().isOk())
                 .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("1"))
                 .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@docid").string("10044"));
+    }
+
+    @Test
+    public void findByContent() throws Exception {
+        mockMvc.perform(get("/search?field0=defaultsearchfield&query0=Eschweilerhof"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Opus/SearchResult/Search/@hits").string("1"))
+                .andExpect(xpath("/Opus/SearchResult/ResultList/Result[1]/@docid").string("1071"));
     }
 
 }

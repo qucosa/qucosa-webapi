@@ -1,0 +1,28 @@
+{
+    "PID": "qucosa:1071",
+    "STATE": "A",
+    "LABEL": "Test",
+    "OWNER_ID": "qucosa",
+    "CREATED_DATE": "2014-06-10T11:23:11.964Z",
+    "LAST_MODIFIED_DATE": "2014-06-10T11:33:53.115Z",
+    "_dissemination": {
+        "_sdef_pid": "qucosa:SDef",
+        "_method": "getIndexDocument",
+        "_content": {
+            "PUB_DATE": "2014-06-10",
+            "PUB_TYPE": "study",
+            "PUB_TITLE": ["Test"],
+            "PUB_ABSTRACT": [],
+            "PUB_URN": ["urn:nbn:de:bsz:15-qucosa-10713"],
+            "PUB_ADM_NOTE": [],
+            "PUB_AUTHOR": [],
+            "PUB_SUBMITTER": ["Ralf"],
+            "PUB_TAG_DDC": [],
+            "PUB_TAG": ["fdgdfg"],
+            "PUB_FILENAME": ["wiki.pdf", "HRS_Bremen.pdf", "Band_3.pdf"],
+            "PUB_ORIGINATOR": ["ICH AG"],
+            "PUB_ORIGINATOR_SUB": [],
+            "": ""
+        }
+    }
+}
