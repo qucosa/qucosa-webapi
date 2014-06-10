@@ -351,16 +351,32 @@ class DocumentResource {
         return errorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    private void writeHtAccessFile(String qid, Document qucosaDocument) throws XPathExpressionException, IOException {
-        NodeList restrictedFiles = (NodeList) xPath.evaluate(
-                "//File[PathName!='' and FrontdoorVisible!='1']", qucosaDocument, XPathConstants.NODESET);
+    private void writeHtAccessFile(
+            String qid,
+            Document qucosaDocument)
+            throws
+            XPathExpressionException,
+            FileNotFoundException {
 
-        File htaccess = fileHandlingService.newFile(qid, ".htaccess");
+        NodeList restrictedFiles =
+                (NodeList) xPath.evaluate(
+                        "//File[PathName!='' and FrontdoorVisible!='1']",
+                        qucosaDocument,
+                        XPathConstants.NODESET);
 
-        if (htaccess == null) {
-            log.warn("Cannot write to .htaccess file.");
+        File htaccess;
+        try {
+            htaccess = fileHandlingService.newFile(qid, ".htaccess");
+        } catch (IOException e) {
+            log.warn("Cannot create .htaccess file: " + e.getMessage());
             return;
         }
+
+        if (htaccess == null || !htaccess.exists() || !htaccess.canWrite()) {
+            log.warn("No write access to .htaccess file");
+            return;
+        }
+
         if (restrictedFiles.getLength() == 0) {
             if (htaccess.exists()) htaccess.delete();
             return;
