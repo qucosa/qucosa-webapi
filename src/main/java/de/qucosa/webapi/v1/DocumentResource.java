@@ -368,12 +368,21 @@ class DocumentResource {
         try {
             htaccess = fileHandlingService.newFile(qid, ".htaccess");
         } catch (IOException e) {
-            log.warn("Cannot create .htaccess file: " + e.getMessage());
+            log.error("Cannot create .htaccess file: " + e.getMessage());
+
+            if (log.isDebugEnabled()) {
+                log.debug("Cause: ", e.getCause());
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                log.debug("Stacktrace: ", sw);
+            }
+
             return;
         }
 
         if (htaccess == null || !htaccess.exists() || !htaccess.canWrite()) {
-            log.warn("No write access to .htaccess file");
+            log.error("No write access to .htaccess file");
             return;
         }
 
