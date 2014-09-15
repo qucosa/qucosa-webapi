@@ -1,3 +1,8 @@
+# STATUS
+
+The project is discontinued.
+
+
 [![Build Status](https://travis-ci.org/slub/qucosa-webapi.png?branch=master)](https://travis-ci.org/slub/qucosa-webapi)
 
 # Qucosa Webapi
